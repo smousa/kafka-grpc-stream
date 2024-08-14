@@ -58,15 +58,15 @@ jobs:
           push: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          build-args:
-            - ALPINE_VERSION=${{ steps.settings.outputs.ALPINE_VERSION }}
-            - GOLANG_VERSION=${{ steps.settings.outputs.GOLANG_VERSION }}
-            - LINTER_VERSION=${{ steps.settings.outputs.LINTER_VERSION }}
-            - COVER_VERSION=${{ steps.settings.outputs.COVER_VERSION }}
-            - MOCKERY_VERSION=${{ steps.settings.outputs.MOCKERY_VERSION }}
-            - BUILD_VERSION=${{ steps.settings.outputs.BUILD_VERSION }}
-            - BUILD_DATE=${{ steps.settings.outputs.BUILD_DATE }}
-            - BUILD_COMMIT=${{ steps.settings.outputs.BUILD_COMMIT }}
-          tags:
-            - ${{ github.repository }}
-            - ${{ github.repository }}:${{ steps.settings.outputs.BUILD_VERSION }}
+          build-args: |
+            ALPINE_VERSION=${{ steps.settings.outputs.ALPINE_VERSION }}
+            GOLANG_VERSION=${{ steps.settings.outputs.GOLANG_VERSION }}
+            LINTER_VERSION=${{ steps.settings.outputs.LINTER_VERSION }}
+            COVER_VERSION=${{ steps.settings.outputs.COVER_VERSION }}
+            MOCKERY_VERSION=${{ steps.settings.outputs.MOCKERY_VERSION }}
+            BUILD_VERSION=${{ steps.settings.outputs.BUILD_VERSION }}
+            BUILD_DATE=${{ steps.settings.outputs.BUILD_DATE }}
+            BUILD_COMMIT=${{ steps.settings.outputs.BUILD_COMMIT }}
+          tags: |
+            ${{ github.repository }}
+            ${{ github.repository }}:${{ steps.settings.outputs.BUILD_VERSION }}
