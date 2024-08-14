@@ -43,10 +43,10 @@ jobs:
         id: settings
         shell: bash
         run: |-
-          DOCKER_HUB_USER=$( echo ${{ secrets.DOCKER_HUB }} | base64 --decode | jq -r '.username' )
-          DOCKER_HUB_PASS=$( echo ${{ secrets.DOCKER_HUB }} | base64 --decode | jq -r '.password' )
-          echo "::add-mask::$DOCKER_HUB_USER"
-          echo "::add-mask::$DOCKER_HUB_PASS"
+          DOCKER_HUB_USER=$( echo ${{ secrets.DOCKER_HUB }} | jq -r '.username' )
+          DOCKER_HUB_PASS=$( echo ${{ secrets.DOCKER_HUB }} | jq -r '.password' )
+          # echo "::add-mask::$DOCKER_HUB_USER"
+          # echo "::add-mask::$DOCKER_HUB_PASS"
           echo "DOCKER_HUB_USER=$DOCKER_HUB_USER" >> $GITHUB_OUTPUT
           echo "DOCKER_HUB_PASS=$DOCKER_HUB_PASS" >> $GITHUB_OUTPUT
 
