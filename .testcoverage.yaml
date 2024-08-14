@@ -1,0 +1,10 @@
+profile: coverprofile.out
+
+threshold:
+  file: 0
+  package: 0
+  total: 50 # FIXME
+
+exclude:
+  paths:
+    - \.pb\.go$

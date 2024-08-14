@@ -1,0 +1,58 @@
+run:
+  timeout: 5m
+  tests: false
+  modules-download-mode: readonly
+  allow-parallel-runners: true
+  allow-serial-runners: true
+  go: '1.22.5'
+
+linters:
+  enable-all: true
+  disable:
+    - funlen
+    - lll
+    - musttag
+    - exhaustruct
+    - dupl              # info
+    - nestif            # info
+    - gocognit          # info
+    - gocyclo           # info
+    - cyclop            # info
+    - structcheck       # deprecated
+    - interfacer        # deprecated
+    - varcheck          # deprecated
+    - deadcode          # deprecated
+    - maligned          # deprecated
+    - exhaustivestruct  # deprecated
+    - nosnakecase       # deprecated
+    - ifshort           # deprecated
+    - scopelint         # deprecated
+    - golint            # deprecated
+
+linters-settings:
+  revive:
+    rules:
+      - name: var-naming
+        disabled: true
+  stylecheck:
+    checks:
+      - all
+      - -ST1003
+  depguard:
+    rules:
+      main:
+        list-mode: lax
+        allow:
+          - $all
+  varnamelen:
+    ignore-decls:
+      - v *viper.Viper
+      - ok bool
+
+issues:
+  exclude-dirs:
+    - protobuf
+  exclude-rules:
+    - path: server/main.go
+      linters:
+        - typecheck
