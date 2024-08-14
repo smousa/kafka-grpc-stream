@@ -43,8 +43,8 @@ jobs:
         id: settings
         shell: bash
         run: |-
-          echo "DOCKER_HUB_USER=::add-mask::${{ fromJSON(secrets.DOCKER_HUB).username }}" >> $GITHUB_OUTPUT
-          echo "DOCKER_HUB_PASS=::add-mask::${{ fromJSON(secrets.DOCKER_HUB).password }}" >> $GITHUB_OUTPUT
+          echo DOCKER_HUB_USER=$(echo ::add-mask::${{ fromJSON(secrets.DOCKER_HUB).username }}) >> $GITHUB_OUTPUT
+          echo DOCKER_HUB_PASS=$(echo ::add-mask::${{ fromJSON(secrets.DOCKER_HUB).password }}) >> $GITHUB_OUTPUT
 
           cat .env >> $GITHUB_OUTPUT
           echo BUILD_VERSION=$(cat VERSION) >> $GITHUB_OUTPUT
