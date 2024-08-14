@@ -12,7 +12,6 @@ on:
 jobs:
   validate:
     name: Test
-    needs: validate
     runs-on: [ ubuntu-latest ]
     container:
       image: ${{ github.event.repository.name }}:base
