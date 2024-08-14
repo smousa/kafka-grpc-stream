@@ -257,7 +257,6 @@ func (r *EtcdRegistry) getLeader(ctx context.Context, hostPath string, rev int64
 	return path.Base(string(resp.Kvs[0].Key)), nil
 }
 
-//nolint:cyclop
 func (r *EtcdRegistry) rebalance(ctx context.Context, hostPath, sessionPath, routePath string, rev int64) error {
 	// Get the list of hosts
 	hostResp, err := r.kv.Get(ctx, hostPath,
