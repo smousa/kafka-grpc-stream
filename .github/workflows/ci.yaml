@@ -13,8 +13,6 @@ jobs:
   validate:
     name: Test
     runs-on: [ ubuntu-latest ]
-    container:
-      image: ${{ github.event.repository.name }}:base
     steps:
       - name: checkout
         uses: actions/checkout@v4
