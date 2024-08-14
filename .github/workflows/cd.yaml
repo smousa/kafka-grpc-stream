@@ -45,7 +45,7 @@ jobs:
           cat .env >> $GITHUB_OUTPUT
           echo BUILD_VERSION=$(cat VERSION) >> $GITHUB_OUTPUT
           echo BUILD_DATE=$(date '+%Y%m%d') >> $GITHUB_OUTPUT
-          echo BUILD_COMMIT=$(git rev-parse --short HEAD)
+          echo BUILD_COMMIT=$(git rev-parse --short HEAD) >> $GITHUB_OUTPUT
       - name: set up QEMU
         uses: docker/setup-qemu-action@v3
       - name: set up docker buildx
