@@ -8,6 +8,18 @@ ARG LINTER_VERSION
 RUN apk update --no-cache && \
 	apk add make bash g++ git golangci-lint=~${LINTER_VERSION}
 
+# Set up dev user
+ARG UID=1000
+ARG GID=1000
+RUN addgroup -g ${GID} dev && \
+	adduser --u ${UID} -G dev -D dev && \
+	mkdir -p /etc/sudoers.d && \
+	echo "dev ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/dev && \
+	chmod 0440 /etc/sudoers.d/dev && \
+	mkdir /.cache && \
+	chmod -R 777 /.cache
+USER ${UID}:${GID}
+
 # Set up workspace
 WORKDIR /workspace
 COPY go.mod go.mod
@@ -36,6 +48,7 @@ ARG BUILD_VERSION=0.0.0
 ARG BUILD_DATE=YYYYMMDD
 ARG BUILD_COMMIT=dev
 RUN go build -o ./bin/server \
+	-buildvcs=false \
 	-ldflags " \
 		-X 'main.Version=${BUILD_VERSION}' \
 		-X 'main.Date=${BUILD_DATE}' \

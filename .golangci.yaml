@@ -13,6 +13,7 @@ linters:
     - lll
     - musttag
     - exhaustruct
+    - gofumpt
     - dupl              # info
     - nestif            # info
     - gocognit          # info
@@ -48,6 +49,10 @@ linters-settings:
     ignore-decls:
       - v *viper.Viper
       - ok bool
+      - wg sync.WaitGroup
+  gocritic:
+    disabled-checks:
+      - exitAfterDefer
 
 issues:
   exclude-dirs:

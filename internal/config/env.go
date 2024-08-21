@@ -33,6 +33,19 @@ func loadEtcdEnv(v *viper.Viper) {
 	v.MustBindEnv("etcd.backoffJitterFraction", "ETCD_BACKOFF_JITTER_FRACTION")
 }
 
+func loadKafkaEnv(v *viper.Viper) {
+	v.MustBindEnv("kafka.brokerMaxReadBytes", "KAFKA_BROKER_MAX_READ_BYTES")
+	v.MustBindEnv("kafka.clientId", "KAFKA_CLIENT_ID")
+	v.MustBindEnv("kafka.seedBrokers", "KAFKA_SEED_BROKERS")
+	v.MustBindEnv("kafka.fetchMaxBytes", "KAFKA_FETCH_MAX_BYTES")
+	v.MustBindEnv("kafka.fetchMaxPartitionBytes", "KAFKA_FETCH_MAX_PARTITION_BYTES")
+	v.MustBindEnv("kafka.fetchMaxWait", "KAFKA_FETCH_MAX_WAIT")
+	v.MustBindEnv("kafka.fetchMinBytes", "KAFKA_FETCH_MIN_BYTES")
+	v.MustBindEnv("kafka.maxConcurrentFetches", "KAFKA_MAX_CONCURRENT_FETCHES")
+
+	v.SetDefault("kafka.clientId", "kafka-grpc-stream")
+}
+
 func loadEnv(v *viper.Viper) {
 	v.MustBindEnv("listen.url", "LISTEN_URL")
 	v.MustBindEnv("listen.advertiseUrl", "LISTEN_ADVERTISE_URL")
@@ -48,5 +61,6 @@ func init() {
 	v := viper.GetViper()
 	loadLogEnv(v)
 	loadEtcdEnv(v)
+	loadKafkaEnv(v)
 	loadEnv(v)
 }

@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"path"
+	"strconv"
 	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
+	"github.com/smousa/kafka-grpc-stream/internal/subscribe"
 	"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
@@ -309,7 +311,7 @@ func (r *EtcdRegistry) rebalance(ctx context.Context, hostPath, sessionPath, rou
 			}
 
 			delete(routeMap, key)
-		} else if !ok {
+		} else {
 			ops = append(ops, clientv3.OpDelete(key))
 		}
 	}
@@ -335,29 +337,35 @@ func (r *EtcdRegistry) rebalance(ctx context.Context, hostPath, sessionPath, rou
 	return errors.Wrap(err, "could not update routes")
 }
 
-func (r *EtcdRegistry) RegisterKey(ctx context.Context, key Key) error {
+func (r *EtcdRegistry) Publish(ctx context.Context, message *subscribe.Message) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
 	// Skip registration if not the leader
 	if !r.isLeader {
-		return nil
+		return
 	}
 
-	keyDir := path.Join("/topics/", key.Topic, "keys/", key.Value)
+	keyDir := path.Join("/topics/", message.Topic, "keys/", message.Key)
+	partition := strconv.Itoa(int(message.Partition))
 	_, err := r.kv.Txn(ctx).
 		If(clientv3.Compare(clientv3.Version(keyDir), "=", 0)).
-		Then(clientv3.OpPut(keyDir, key.Partition)).
+		Then(clientv3.OpPut(keyDir, partition)).
 		Else(clientv3.OpTxn(
 			[]clientv3.Cmp{
-				clientv3.Compare(clientv3.Value(keyDir), "!=", key.Partition),
+				clientv3.Compare(clientv3.Value(keyDir), "!=", partition),
 			},
 			[]clientv3.Op{
-				clientv3.OpPut(keyDir, key.Partition),
+				clientv3.OpPut(keyDir, partition),
 			},
 			[]clientv3.Op{},
 		)).
 		Commit()
 
-	return errors.Wrap(err, "could not register key")
+	if err != nil {
+		zerolog.Ctx(ctx).Error().
+			Err(err).
+			Str("key", message.Key).
+			Msg("Could not register key")
+	}
 }
