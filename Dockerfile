@@ -12,7 +12,7 @@ RUN apk update --no-cache && \
 ARG UID=1000
 ARG GID=1000
 RUN addgroup -g ${GID} dev && \
-	adduser --u ${UID} -G dev -D dev && \
+	adduser -u ${UID} -G dev -D dev && \
 	mkdir -p /etc/sudoers.d && \
 	echo "dev ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/dev && \
 	chmod 0440 /etc/sudoers.d/dev && \
