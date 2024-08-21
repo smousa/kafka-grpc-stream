@@ -21,8 +21,8 @@ jobs:
           push: false
           load: true
           set: |
-              web.cache-from=type=gha
-              web.cache-to=type=gha
+              *.cache-from=type=gha
+              *.cache-to=type=gha
       - name: lint
         run: make lint
         shell: bash
