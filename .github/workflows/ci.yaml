@@ -22,7 +22,7 @@ jobs:
           load: true
           set: |
               *.cache-from=type=gha
-              *.cache-to=type=gha
+              *.cache-to=type=gha,mode=max
       - name: lint
         run: make lint
         shell: bash
