@@ -1,0 +1,8 @@
+with-expecter: true
+packages:
+  github.com/smousa/kafka-grpc-stream/internal/subscribe:
+    config:
+      dir: internal/mocks/subscribe
+    interfaces:
+      KafkaClient:
+      Publisher:

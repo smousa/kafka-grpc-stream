@@ -1,31 +1,82 @@
 services:
+  redpanda:
+    image: docker.redpanda.com/redpandadata/redpanda:${REDPANDA_VERSION}
+    command:
+      - redpanda start
+      - --smp 1
+      - --overprovisioned
+      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr internal://redpanda:9092,external://localhost:19092
+      - --pandaproxy-addr internal://0.0.0.0:8082,external://0.0.0.0:18082
+      - --advertise-pandaproxy-addr internal://redpanda:8082,external://localhost:18082
+      - --schema-registry-addr internal://0.0.0.0:8081,external://0.0.0.0:18081
+      - --rpc-addr redpanda:33145
+      - --advertise-rpc-addr redpanda:33145
+      - --mode dev-container
+  redpanda-console:
+    depends_on:
+      - redpanda
+    image: docker.redpanda.com/redpandadata/console:${REDPANDA_CONSOLE_VERSION}
+    restart: on-failure
+    entrypoint: /bin/sh
+    command: -c 'echo "$$CONSOLE_CONFIG_FILE" > /tmp/config.yaml; /app/console'
+    environment:
+      CONFIG_FILEPATH: /tmp/config.yaml
+      CONSOLE_CONFIG_FILE: |
+        kafka:
+          brokers: ["redpanda:9092"]
+        redpanda:
+          adminApi:
+            enabled: true
+            urls: ["http://redpanda:9644"]
+    ports:
+      - 8000:8080
   etcd:
-    image: bitnami/etcd:3.5.15
+    image: bitnami/etcd:${ETCD_VERSION}
     environment:
       ALLOW_NONE_AUTHENTICATION: yes
       ETCD_ADVERTISE_CLIENT_URLS: http://etcd:2379
 
   server:
-    stop_signal: SIGINT
     depends_on:
       - etcd
+      - redpanda
     build:
       context: .
-      args:
+      args: &build
         ALPINE_VERSION: ${ALPINE_VERSION}
         GOLANG_VERSION: ${GOLANG_VERSION}
         LINTER_VERSION: ${LINTER_VERSION}
         COVER_VERSION: ${COVER_VERSION}
         MOCKERY_VERSION: ${MOCKERY_VERSION}
+        USER_ID: ${USER_ID:-1000}
+        GROUP_ID: ${GROUP_ID:-1000}
     environment:
       - ETCD_ENDPOINTS=etcd:2379
+      - KAFKA_SEED_BROKERS=redpanda:9092
       - LISTEN_URL=0.0.0.0:9000
       - LISTEN_ADVERTISE_URL=server:9000
       - WORKER_TOPIC=my.test.topic
       - WORKER_PARTITION=0
       - WORKER_LEASE_EXPIRY_SECONDS=30
 
-
+  redpanda-dev:
+    profiles:
+      - ci
+    extends:
+      service: redpanda
+    command:
+      - redpanda start
+      - --smp 1
+      - --overprovisioned
+      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr internal://redpanda-dev:9092,external://localhost:19092
+      - --pandaproxy-addr internal://0.0.0.0:8082,external://0.0.0.0:18082
+      - --advertise-pandaproxy-addr internal://redpanda-dev:8082,external://localhost:18082
+      - --schema-registry-addr internal://0.0.0.0:8081,external://0.0.0.0:18081
+      - --rpc-addr redpanda-dev:33145
+      - --advertise-rpc-addr redpanda-dev:33145
+      - --mode dev-container
   etcd-dev:
     profiles:
       - ci
@@ -36,14 +87,15 @@ services:
   dev:
     profiles:
       - ci
-    extends:
-      service: server
     depends_on:
       - etcd-dev
+      - redpanda-dev
     build:
       context: .
+      args: *build
       target: base
     environment:
       - ETCD_ENDPOINTS=etcd-dev:2379
+      - KAFKA_SEED_BROKERS=redpanda-dev:9092
     volumes:
       - .:/workspace

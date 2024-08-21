@@ -6,6 +6,7 @@ filter, and stream data from kafka topics. More details coming soon!
 ## Features
 
 * Server-side host-session routing
+* Key registration (maps keys to partitions)
 
 ## Local Development
 
@@ -17,10 +18,18 @@ filter, and stream data from kafka topics. More details coming soon!
 
 ### Running
 
-Starts a local etcd server and the kafka-grpc-stream server.
+Starts a local etcd, redpanda server and the kafka-grpc-stream server.
 
 ```bash
 docker compose up
+```
+
+Access the local redpanda console at http://localhost:8000
+
+Access the etcd via command line:
+
+```bash
+docker compose exec etcdctl help
 ```
 
 ### Testing
@@ -31,8 +40,21 @@ You can run the entire test suite using make:
 make test
 ```
 
+And the e2e test suite:
+
+```bash
+make e2e-test
+```
+
 ...or you can have more fine-grained control of tests by running ginkgo
 
 ```bash
 docker compose run --rm dev ginkgo help
+```
+
+Mocks are generated with mockery.  Update .mockery.yaml with the interface/s to
+want to mock:
+
+```bash
+make mock
 ```

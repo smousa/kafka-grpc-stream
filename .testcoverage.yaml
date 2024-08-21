@@ -3,7 +3,7 @@ profile: coverprofile.out
 threshold:
   file: 0
   package: 0
-  total: 50 # FIXME
+  total: 60 # FIXME
 
 exclude:
   paths:

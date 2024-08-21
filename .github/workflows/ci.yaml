@@ -25,6 +25,9 @@ jobs:
       - name: coverage
         shell: bash
         run: make coverage
+      - name: e2e
+        shell: bash
+        run: make e2e-test
       - name: clean
         if: always()
         shell: bash

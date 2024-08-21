@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/gomega/gstruct"
 	clientv3 "go.etcd.io/etcd/client/v3"
 
+	"github.com/smousa/kafka-grpc-stream/internal/subscribe"
 	"github.com/smousa/kafka-grpc-stream/internal/worker"
 )
 
@@ -324,7 +325,7 @@ var _ = Describe("EtcdRegistry", func() {
 	Context("registering the partition key", func() {
 
 		It("should not create the partition key if it is not the leader", func(ctx SpecContext) {
-			Ω(reg.RegisterKey(ctx, worker.Key{Topic: "foo", Partition: "0", Value: "abc"})).Should(Succeed())
+			reg.Publish(ctx, &subscribe.Message{Topic: "foo", Partition: 0, Key: "abc"})
 			res, err := etcdClient.Get(ctx, "/topics/foo/keys/abc")
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(res.Count).Should(BeZero())
@@ -333,7 +334,7 @@ var _ = Describe("EtcdRegistry", func() {
 		It("should not update the partition key if it is not the leader", func(ctx SpecContext) {
 			_, err := etcdClient.Put(ctx, "/topics/foo/keys/abc", "1")
 			Ω(err).ShouldNot(HaveOccurred())
-			Ω(reg.RegisterKey(ctx, worker.Key{Topic: "foo", Partition: "0", Value: "abc"})).Should(Succeed())
+			reg.Publish(ctx, &subscribe.Message{Topic: "foo", Partition: 0, Key: "abc"})
 			res, err := etcdClient.Get(ctx, "/topics/foo/keys/abc")
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(res.Kvs[0].Value).Should(BeEquivalentTo("1"))
@@ -365,7 +366,7 @@ var _ = Describe("EtcdRegistry", func() {
 
 			putResp, err := etcdClient.Put(sCtx, "/topics/foo/keys/abc", "0")
 			Ω(err).ShouldNot(HaveOccurred())
-			Ω(reg.RegisterKey(sCtx, worker.Key{Topic: "foo", Partition: "0", Value: "abc"})).Should(Succeed())
+			reg.Publish(sCtx, &subscribe.Message{Topic: "foo", Partition: 0, Key: "abc"})
 
 			getResp, err := etcdClient.Get(sCtx, "/topics/foo/keys/abc")
 			Ω(err).ShouldNot(HaveOccurred())
@@ -399,7 +400,7 @@ var _ = Describe("EtcdRegistry", func() {
 			})
 			Eventually(watchCh).Should(Receive())
 
-			Ω(reg.RegisterKey(sCtx, worker.Key{Topic: "foo", Partition: "0", Value: "abc"})).Should(Succeed())
+			reg.Publish(sCtx, &subscribe.Message{Topic: "foo", Partition: 0, Key: "abc"})
 
 			getResp, err := etcdClient.Get(sCtx, "/topics/foo/keys/abc")
 			Ω(err).ShouldNot(HaveOccurred())
@@ -433,7 +434,7 @@ var _ = Describe("EtcdRegistry", func() {
 
 			putResp, err := etcdClient.Put(sCtx, "/topics/foo/keys/abc", "1")
 			Ω(err).ShouldNot(HaveOccurred())
-			Ω(reg.RegisterKey(sCtx, worker.Key{Topic: "foo", Partition: "0", Value: "abc"})).Should(Succeed())
+			reg.Publish(sCtx, &subscribe.Message{Topic: "foo", Partition: 0, Key: "abc"})
 
 			getResp, err := etcdClient.Get(sCtx, "/topics/foo/keys/abc")
 			Ω(err).ShouldNot(HaveOccurred())
