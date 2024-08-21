@@ -67,8 +67,6 @@ jobs:
             BUILD_VERSION=${{ steps.settings.outputs.BUILD_VERSION }}
             BUILD_DATE=${{ steps.settings.outputs.BUILD_DATE }}
             BUILD_COMMIT=${{ steps.settings.outputs.BUILD_COMMIT }}
-            UID=0
-            GID=0
           tags: |-
             ${{ github.repository }}
             ${{ github.repository }}:${{ steps.settings.outputs.BUILD_VERSION }}

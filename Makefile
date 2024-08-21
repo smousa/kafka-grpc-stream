@@ -1,5 +1,8 @@
 include .env
 
+export USER_ID := $(shell id -u)
+export GROUP_ID := $(shell id -g)
+
 clean: export COMPOSE_PROFILES := ci
 clean:
 	docker compose down

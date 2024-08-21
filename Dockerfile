@@ -9,16 +9,16 @@ RUN apk update --no-cache && \
 	apk add make bash g++ git golangci-lint=~${LINTER_VERSION}
 
 # Set up dev user
-ARG UID=1000
-ARG GID=1000
-RUN addgroup -g ${GID} dev && \
-	adduser -u ${UID} -G dev -D dev && \
+ARG USER_ID=1000
+ARG GROUP_ID=1000
+RUN addgroup -g ${GROUP_ID} dev && \
+	adduser -u ${USER_ID} -G dev -D dev && \
 	mkdir -p /etc/sudoers.d && \
 	echo "dev ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/dev && \
 	chmod 0440 /etc/sudoers.d/dev && \
 	mkdir /.cache && \
 	chmod -R 777 /.cache
-USER ${UID}:${GID}
+USER ${USER_ID}:${GROUP_ID}
 
 # Set up workspace
 WORKDIR /workspace

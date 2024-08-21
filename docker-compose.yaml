@@ -38,7 +38,6 @@ services:
       ETCD_ADVERTISE_CLIENT_URLS: http://etcd:2379
 
   server:
-    stop_signal: SIGINT
     depends_on:
       - etcd
       - redpanda
@@ -50,6 +49,8 @@ services:
         LINTER_VERSION: ${LINTER_VERSION}
         COVER_VERSION: ${COVER_VERSION}
         MOCKERY_VERSION: ${MOCKERY_VERSION}
+        USER_ID: ${USER_ID:-1000}
+        GROUP_ID: ${GROUP_ID:-1000}
     environment:
       - ETCD_ENDPOINTS=etcd:2379
       - KAFKA_SEED_BROKERS=redpanda:9092
