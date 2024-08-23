@@ -143,6 +143,12 @@ func main() {
 	}()
 
 	// Watch the signal handler
-	<-ctx.Done()
-	srv.GracefulStop()
+	select {
+	case <-ctx.Done():
+		// Wait for the clients to disconnect from the server
+		srv.GracefulStop()
+	case <-rootCtx.Done():
+		// Something unexpected happened here, so we need to hard stop
+		srv.Stop()
+	}
 }
