@@ -22,9 +22,9 @@ func (_m *MockKafkaClient) EXPECT() *MockKafkaClient_Expecter {
 	return &MockKafkaClient_Expecter{mock: &_m.Mock}
 }
 
-// PollFetches provides a mock function with given fields: _a0
-func (_m *MockKafkaClient) PollFetches(_a0 context.Context) kgo.Fetches {
-	ret := _m.Called(_a0)
+// PollFetches provides a mock function with given fields: ctx
+func (_m *MockKafkaClient) PollFetches(ctx context.Context) kgo.Fetches {
+	ret := _m.Called(ctx)
 
 	if len(ret) == 0 {
 		panic("no return value specified for PollFetches")
@@ -32,7 +32,7 @@ func (_m *MockKafkaClient) PollFetches(_a0 context.Context) kgo.Fetches {
 
 	var r0 kgo.Fetches
 	if rf, ok := ret.Get(0).(func(context.Context) kgo.Fetches); ok {
-		r0 = rf(_a0)
+		r0 = rf(ctx)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(kgo.Fetches)
@@ -48,12 +48,12 @@ type MockKafkaClient_PollFetches_Call struct {
 }
 
 // PollFetches is a helper method to define mock.On call
-//   - _a0 context.Context
-func (_e *MockKafkaClient_Expecter) PollFetches(_a0 interface{}) *MockKafkaClient_PollFetches_Call {
-	return &MockKafkaClient_PollFetches_Call{Call: _e.mock.On("PollFetches", _a0)}
+//   - ctx context.Context
+func (_e *MockKafkaClient_Expecter) PollFetches(ctx interface{}) *MockKafkaClient_PollFetches_Call {
+	return &MockKafkaClient_PollFetches_Call{Call: _e.mock.On("PollFetches", ctx)}
 }
 
-func (_c *MockKafkaClient_PollFetches_Call) Run(run func(_a0 context.Context)) *MockKafkaClient_PollFetches_Call {
+func (_c *MockKafkaClient_PollFetches_Call) Run(run func(ctx context.Context)) *MockKafkaClient_PollFetches_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(context.Context))
 	})

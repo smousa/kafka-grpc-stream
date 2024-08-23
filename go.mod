@@ -4,6 +4,8 @@ go 1.22.5
 
 require (
 	github.com/brianvoe/gofakeit/v7 v7.0.4
+	github.com/google/uuid v1.6.0
+	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.1.0
 	github.com/onsi/ginkgo/v2 v2.19.1
 	github.com/onsi/gomega v1.34.1
 	github.com/pkg/errors v0.9.1
@@ -13,7 +15,7 @@ require (
 	github.com/twmb/franz-go v1.17.1
 	go.etcd.io/etcd/api/v3 v3.5.15
 	go.etcd.io/etcd/client/v3 v3.5.15
-	google.golang.org/grpc v1.62.1
+	google.golang.org/grpc v1.65.0
 	google.golang.org/protobuf v1.34.1
 )
 
@@ -55,8 +57,8 @@ require (
 	golang.org/x/sys v0.22.0 // indirect
 	golang.org/x/text v0.16.0 // indirect
 	golang.org/x/tools v0.23.0 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20240311132316-a219d84964c2 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240314234333-6e1732d8331c // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20240528184218-531527333157 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240528184218-531527333157 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

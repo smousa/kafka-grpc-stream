@@ -1,12 +1,15 @@
 ARG ALPINE_VERSION
 ARG GOLANG_VERSION
 
-FROM golang:${GOLANG_VERSION}-alpine${ALPINE_VERSION} as base
+FROM golang:${GOLANG_VERSION}-alpine${ALPINE_VERSION} AS base
 
-# Install golangci-lint
+# Install golangci-lint, protoc
 ARG LINTER_VERSION
+ARG PROTOC_VERSION
 RUN apk update --no-cache && \
-	apk add make bash g++ git golangci-lint=~${LINTER_VERSION}
+	apk add make bash g++ git \
+		golangci-lint=~${LINTER_VERSION} \
+		protoc=~${PROTOC_VERSION}
 
 # Set up dev user
 ARG USER_ID=1000
@@ -20,25 +23,26 @@ RUN addgroup -g ${GROUP_ID} dev && \
 	chmod -R 777 /.cache
 USER ${USER_ID}:${GROUP_ID}
 
+# Install go binaries
+ARG PROTOC_GO_VERSION
+ARG PROTOC_GO_GRPC_VERSION
+ARG COVER_VERSION
+ARG MOCKERY_VERSION
+RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@${PROTOC_GO_VERSION} && \
+	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@${PROTOC_GO_GRPC_VERSION} && \
+	go install github.com/vladopajic/go-test-coverage/v2@${COVER_VERSION} && \
+	go install github.com/vektra/mockery/v2@${MOCKERY_VERSION}
+
 # Set up workspace
 WORKDIR /workspace
 COPY go.mod go.mod
 COPY go.sum go.sum
 RUN go mod download
 
-# Install go-test-coverage
-ARG COVER_VERSION
-RUN go install github.com/vladopajic/go-test-coverage/v2@${COVER_VERSION}
-
-# Install mockery
-ARG MOCKERY_VERSION
-RUN go install github.com/vektra/mockery/v2@${MOCKERY_VERSION}
-
-# Install ginkgo
+# Install ginkgo (has to installed in the context of a workspace)
 RUN go install github.com/onsi/ginkgo/v2/ginkgo
 
-
-FROM base as build
+FROM base AS build
 
 RUN mkdir bin
 COPY . .

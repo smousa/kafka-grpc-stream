@@ -62,6 +62,9 @@ jobs:
             ALPINE_VERSION=${{ steps.settings.outputs.ALPINE_VERSION }}
             GOLANG_VERSION=${{ steps.settings.outputs.GOLANG_VERSION }}
             LINTER_VERSION=${{ steps.settings.outputs.LINTER_VERSION }}
+            PROTOC_VERSION=${{ steps.settings.outputs.PROTOC_VERSION }}
+            PROTOC_GO_VERSION=${{ steps.settings.outputs.PROTOC_GO_VERSION }}
+            PROTOC_GO_GRPC_VERSION=${{ steps.settings.outputs.PROTOC_GO_GRPC_VERSION }}
             COVER_VERSION=${{ steps.settings.outputs.COVER_VERSION }}
             MOCKERY_VERSION=${{ steps.settings.outputs.MOCKERY_VERSION }}
             BUILD_VERSION=${{ steps.settings.outputs.BUILD_VERSION }}

@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package protobuf;
+
+option go_package = "github.com/smousa/kafka-grpc-stream/protobuf";
+
+message Header {
+    string key = 1;
+    string value = 2;
+}
+
+message Message {
+    string key = 1;
+    bytes value = 2;
+    repeated Header headers = 3;
+    int64 timestamp = 4;
+    string topic = 5;
+    int32 partition = 6;
+    int64 offset = 7;
+}
+
+message SubscribeRequest {
+}
+
+service KafkaStreamer {
+    rpc Subscribe(stream SubscribeRequest) returns (stream Message) {};
+}

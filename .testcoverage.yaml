@@ -2,9 +2,14 @@ profile: coverprofile.out
 
 threshold:
   file: 0
-  package: 0
-  total: 60 # FIXME
+  package: 80
+  total: 70 # FIXME
+
+override:
+  - threshold: 60
+    path: internal/worker
 
 exclude:
   paths:
     - \.pb\.go$
+    - internal/mocks
