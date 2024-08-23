@@ -6,3 +6,9 @@ packages:
     interfaces:
       KafkaClient:
       Publisher:
+  github.com/smousa/kafka-grpc-stream/internal/service:
+    config:
+      dir: internal/mocks/service
+    interfaces:
+      SenderStream:
+      BidiStream:

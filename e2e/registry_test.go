@@ -2,9 +2,12 @@ package e2e_test
 
 import (
 	"context"
+	"os"
+	"os/exec"
 	"path"
 	"time"
 
+	"github.com/brianvoe/gofakeit/v7"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
@@ -15,9 +18,14 @@ import (
 )
 
 var _ = Describe("Registry", func() {
-	var session *Session
+	var (
+		session *Session
+		topic   string
+	)
 
 	BeforeEach(func() {
+		topic = "e2e.registry." + gofakeit.LetterN(12)
+
 		// wait for the server to join the registry
 		ctx, cancel := context.WithCancel(context.TODO())
 		defer cancel()
@@ -25,21 +33,31 @@ var _ = Describe("Registry", func() {
 		hostCh := etcdClient.Watch(ctx, hostPath, clientv3.WithPrefix())
 
 		var err error
-		session, err = Start(serverCmd, GinkgoWriter, GinkgoWriter)
+		cmd := exec.Command(serverExe)
+		cmd.Env = append(os.Environ(),
+			"LISTEN_URL=localhost:9000",
+			"LISTEN_ADVERTISE_URL=localhost:9000",
+			"WORKER_TOPIC="+topic,
+			"WORKER_PARTITION=0",
+		)
+		session, err = Start(cmd, GinkgoWriter, GinkgoWriter)
 		Ω(err).ShouldNot(HaveOccurred())
 		Eventually(hostCh).Should(Receive())
 	})
 
 	AfterEach(func() {
-		// wait for the server to leave the registry
-		ctx, cancel := context.WithCancel(context.TODO())
-		defer cancel()
-		hostPath := path.Join("/topics", topic, "0", "hosts") + "/"
-		hostCh := etcdClient.Watch(ctx, hostPath, clientv3.WithPrefix())
+		if session != nil {
+			// wait for the server to leave the registry
+			ctx, cancel := context.WithCancel(context.TODO())
+			defer cancel()
+			hostPath := path.Join("/topics", topic, "0", "hosts") + "/"
+			hostCh := etcdClient.Watch(ctx, hostPath, clientv3.WithPrefix())
 
-		session.Terminate()
-		Eventually(session).Should(Exit())
-		Eventually(hostCh).WithTimeout(10 * time.Second).Should(Receive())
+			session.Terminate()
+			Eventually(session).Should(Exit())
+			Eventually(hostCh).WithTimeout(10 * time.Second).Should(Receive())
+		}
+		etcdClient.Delete(context.TODO(), "/topics/"+topic, clientv3.WithPrefix())
 	})
 
 	It("should register all the new keys seen on the partition", func(ctx SpecContext) {

@@ -8,14 +8,6 @@ const (
 	DefaultWorkerLeaseExpirySeconds = 30
 )
 
-func loadLogEnv(v *viper.Viper) {
-	v.MustBindEnv("log.level", "LOG_LEVEL")
-	v.MustBindEnv("log.timeFieldFormat", "LOG_TIME_FIELD_FORMAT")
-
-	v.SetDefault("log.level", "info")
-	v.SetDefault("log.timeFieldFormat", "unix")
-}
-
 func loadEtcdEnv(v *viper.Viper) {
 	v.MustBindEnv("etcd.endpoints", "ETCD_ENDPOINTS")
 	v.MustBindEnv("etcd.autoSyncInterval", "ETCD_AUTO_SYNC_INTERVAL")
@@ -47,19 +39,29 @@ func loadKafkaEnv(v *viper.Viper) {
 }
 
 func loadEnv(v *viper.Viper) {
+	v.MustBindEnv("log.level", "LOG_LEVEL")
+	v.MustBindEnv("log.timeFieldFormat", "LOG_TIME_FIELD_FORMAT")
+
 	v.MustBindEnv("listen.url", "LISTEN_URL")
 	v.MustBindEnv("listen.advertiseUrl", "LISTEN_ADVERTISE_URL")
+
+	v.MustBindEnv("server.tls.enabled", "SERVER_TLS_ENABLED")
+	v.MustBindEnv("server.tls.certFile", "SERVER_TLS_CERT_FILE")
+	v.MustBindEnv("server.tls.keyFile", "SERVER_TLS_KEY_FILE")
+	v.MustBindEnv("server.maxConcurrentStreams", "SERVER_MAX_CONCURRENT_STREAMS")
+
 	v.MustBindEnv("worker.topic", "WORKER_TOPIC")
 	v.MustBindEnv("worker.partition", "WORKER_PARTITION")
 	v.MustBindEnv("worker.leaseExpirySeconds", "WORKER_LEASE_EXPIRY_SECONDS")
 
+	v.SetDefault("log.level", "info")
+	v.SetDefault("log.timeFieldFormat", "unix")
 	v.SetDefault("worker.leaseExpirySeconds", DefaultWorkerLeaseExpirySeconds)
 }
 
 //nolint:gochecknoinits
 func init() {
 	v := viper.GetViper()
-	loadLogEnv(v)
 	loadEtcdEnv(v)
 	loadKafkaEnv(v)
 	loadEnv(v)

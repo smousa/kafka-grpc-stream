@@ -1,7 +1,6 @@
 package subscribe
 
 import (
-	"context"
 	"time"
 )
 
@@ -18,8 +17,4 @@ type Message struct {
 	Topic     string
 	Partition int32
 	Offset    int64
-}
-
-type Publisher interface {
-	Publish(ctx context.Context, message *Message)
 }

@@ -19,7 +19,7 @@ type EtcdRegistry struct {
 	kv      clientv3.KV
 	watcher clientv3.Watcher
 
-	mu       sync.RWMutex
+	mu       sync.Mutex
 	isLeader bool
 }
 
@@ -67,6 +67,14 @@ func (r *EtcdRegistry) Register(ctx context.Context, worker Worker, ttl int64) e
 
 		return errors.Wrap(err, "could not grant lease")
 	}
+
+	// Revoke leader privileges
+	defer func() {
+		r.mu.Lock()
+		defer r.mu.Unlock()
+		r.isLeader = false
+	}()
+
 	//nolint:errcheck
 	defer r.lease.Revoke(context.WithoutCancel(ctx), grant.ID)
 
@@ -338,8 +346,8 @@ func (r *EtcdRegistry) rebalance(ctx context.Context, hostPath, sessionPath, rou
 }
 
 func (r *EtcdRegistry) Publish(ctx context.Context, message *subscribe.Message) {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
 	// Skip registration if not the leader
 	if !r.isLeader {

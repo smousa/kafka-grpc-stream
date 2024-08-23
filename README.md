@@ -5,8 +5,9 @@ filter, and stream data from kafka topics. More details coming soon!
 
 ## Features
 
-* Server-side host-session routing
-* Key registration (maps keys to partitions)
+* 0.0.5 - Manual subscribe to a topic/partition server through grpc client
+* 0.0.4 - Key registration (maps keys to partitions)
+* 0.0.3 - Server-side host-session routing
 
 ## Local Development
 

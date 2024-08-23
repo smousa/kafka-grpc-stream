@@ -1,14 +1,11 @@
 package e2e_test
 
 import (
-	"context"
-	"os"
-	"os/exec"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gexec"
+	. "github.com/onsi/gomega/gexec"
 
 	"github.com/brianvoe/gofakeit/v7"
 	"github.com/smousa/kafka-grpc-stream/internal/config"
@@ -23,10 +20,9 @@ func TestE2e(t *testing.T) {
 }
 
 var (
-	serverCmd   *exec.Cmd
+	serverExe   string
 	etcdClient  *clientv3.Client
 	kafkaClient *kgo.Client
-	topic       string
 )
 
 var _ = SynchronizedBeforeSuite(
@@ -47,27 +43,18 @@ var _ = SynchronizedBeforeSuite(
 		)
 		Ω(err).ShouldNot(HaveOccurred())
 
-		serverBuildPath, err := gexec.Build(
+		serverExe, err = Build(
 			"github.com/smousa/kafka-grpc-stream/server",
 			"-buildvcs=false",
 		)
 		Ω(err).ShouldNot(HaveOccurred())
-		serverCmd = exec.Command(serverBuildPath)
 	},
 	func() {
-		topic = "e2e." + gofakeit.LetterN(12)
-		serverCmd.Env = append(os.Environ(),
-			"LISTEN_URL=localhost:9000",
-			"LISTEN_ADVERTISE_URL=localhost:9000",
-			"WORKER_TOPIC="+topic,
-			"WORKER_PARTITION=0",
-		)
 	},
 )
 
 var _ = SynchronizedAfterSuite(
 	func() {
-		etcdClient.Delete(context.TODO(), "/topics/"+topic, clientv3.WithPrefix())
 	},
 	func() {
 		if etcdClient != nil {
@@ -76,6 +63,6 @@ var _ = SynchronizedAfterSuite(
 		if kafkaClient != nil {
 			kafkaClient.Close()
 		}
-		gexec.CleanupBuildArtifacts()
+		CleanupBuildArtifacts()
 	},
 )

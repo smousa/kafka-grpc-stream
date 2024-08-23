@@ -22,5 +22,11 @@ coverage:
 mock:
 	docker compose run --rm dev mockery
 
+proto:
+	docker compose run --rm dev protoc \
+		--go_out=. --go_opt=paths=source_relative \
+		--go-grpc_out=. --go-grpc_opt=paths=source_relative \
+		protobuf/service.proto
+
 version:
 	@git diff --exit-code --quiet main VERSION || exit 0 && echo VERSION file not updated && exit 1
