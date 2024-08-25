@@ -3,6 +3,8 @@ include .env
 export USER_ID := $(shell id -u)
 export GROUP_ID := $(shell id -g)
 
+default: version lint test e2e-test coverage clean
+
 clean: export COMPOSE_PROFILES := ci
 clean:
 	docker compose down

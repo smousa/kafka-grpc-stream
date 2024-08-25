@@ -136,19 +136,11 @@ func main() {
 
 	go func() {
 		defer wg.Done()
-		defer rootCancel()
-
 		subscriber.Subscribe(rootCtx)
 		logger.Info().Msg("Stopping consumer")
 	}()
 
 	// Watch the signal handler
-	select {
-	case <-ctx.Done():
-		// Wait for the clients to disconnect from the server
-		srv.GracefulStop()
-	case <-rootCtx.Done():
-		// Something unexpected happened here, so we need to hard stop
-		srv.Stop()
-	}
+	<-ctx.Done()
+	srv.GracefulStop()
 }

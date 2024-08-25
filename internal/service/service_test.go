@@ -16,6 +16,7 @@ import (
 	mocks "github.com/smousa/kafka-grpc-stream/internal/mocks/service"
 	"github.com/smousa/kafka-grpc-stream/internal/service"
 	"github.com/smousa/kafka-grpc-stream/internal/subscribe"
+	"github.com/smousa/kafka-grpc-stream/protobuf"
 )
 
 var _ = Describe("Service", func() {
@@ -96,11 +97,19 @@ var _ = Describe("Service", func() {
 
 		var recvWait, sendWait = make(chan struct{}), make(chan struct{})
 		stream.On("Recv").
-			Return(nil, status.Error(codes.Canceled, context.Canceled.Error())).
+			Return(&protobuf.SubscribeRequest{
+				Keys: []string{"*"},
+			}, nil).
 			Once().
 			Run(func(mock.Arguments) {
 				defer GinkgoRecover()
 				close(recvWait)
+			})
+		stream.On("Recv").
+			Return(nil, status.Error(codes.Canceled, context.Canceled.Error())).
+			Once().
+			Run(func(mock.Arguments) {
+				defer GinkgoRecover()
 				Eventually(sendWait).Should(BeClosed())
 			})
 		stream.On("Send", mock.AnythingOfType("*protobuf.Message")).
@@ -158,11 +167,19 @@ var _ = Describe("Service", func() {
 
 		var recvWait, sendWait = make(chan struct{}), make(chan struct{})
 		stream.On("Recv").
-			Return(nil, status.Error(codes.Canceled, context.Canceled.Error())).
+			Return(&protobuf.SubscribeRequest{
+				Keys: []string{"*"},
+			}, nil).
 			Once().
 			Run(func(mock.Arguments) {
 				defer GinkgoRecover()
 				close(recvWait)
+			})
+		stream.On("Recv").
+			Return(nil, status.Error(codes.Canceled, context.Canceled.Error())).
+			Once().
+			Run(func(mock.Arguments) {
+				defer GinkgoRecover()
 				Eventually(sendWait).Should(BeClosed())
 			})
 		stream.On("Send", mock.AnythingOfType("*protobuf.Message")).
@@ -200,5 +217,100 @@ var _ = Describe("Service", func() {
 		}()
 		Eventually(recvWait).Should(BeClosed())
 		broadcast.Publish(ctx, msg)
+	})
+
+	It("should return an error if the key filter cannot be parsed", func() {
+		stream.On("Recv").
+			Return(&protobuf.SubscribeRequest{
+				Keys: []string{"[]"},
+			}, nil).
+			Once()
+		Ω(svc.Subscribe(stream)).ShouldNot(Succeed())
+	})
+
+	It("should return records that have matching keys", func(ctx SpecContext) {
+		msgs := []*subscribe.Message{
+			{
+				Key:   "foo",
+				Value: []byte("bar"),
+				Headers: []subscribe.Header{
+					{
+						Key:   "hi",
+						Value: "bye",
+					},
+				},
+				Timestamp: time.Now(),
+				Topic:     "my.topic",
+				Partition: 1,
+				Offset:    20,
+			}, {
+				Key:   "fuh",
+				Value: []byte("bar"),
+				Headers: []subscribe.Header{
+					{
+						Key:   "hi",
+						Value: "bye",
+					},
+				},
+				Timestamp: time.Now(),
+				Topic:     "my.topic",
+				Partition: 1,
+				Offset:    20,
+			},
+		}
+
+		var recvWait, sendWait = make(chan struct{}), make(chan struct{})
+		stream.On("Recv").
+			Return(&protobuf.SubscribeRequest{
+				Keys: []string{"foo"},
+			}, nil).
+			Once().
+			Run(func(mock.Arguments) {
+				defer GinkgoRecover()
+				close(recvWait)
+			})
+		stream.On("Recv").
+			Return(nil, status.Error(codes.Canceled, context.Canceled.Error())).
+			Once().
+			Run(func(mock.Arguments) {
+				defer GinkgoRecover()
+				Eventually(sendWait).Should(BeClosed())
+			})
+		stream.On("Send", mock.AnythingOfType("*protobuf.Message")).
+			Return(errors.New("error")).
+			Once().
+			Run(func(args mock.Arguments) {
+				defer GinkgoRecover()
+				Ω(args.Get(0)).Should(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Key":   BeEquivalentTo(msgs[0].Key),
+					"Value": BeEquivalentTo(msgs[0].Value),
+					"Headers": MatchAllElementsWithIndex(IndexIdentity, Elements{
+						"0": PointTo(MatchFields(IgnoreExtras, Fields{
+							"Key":   Equal("hi"),
+							"Value": Equal("bye"),
+						})),
+					}),
+					"Timestamp": Equal(msgs[0].Timestamp.UnixMilli()),
+					"Topic":     Equal(msgs[0].Topic),
+					"Partition": Equal(msgs[0].Partition),
+					"Offset":    Equal(msgs[0].Offset),
+				})))
+				close(sendWait)
+			})
+
+		var wg sync.WaitGroup
+		defer wg.Wait()
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			defer GinkgoRecover()
+			Ω(svc.Subscribe(stream)).Should(Succeed())
+
+			By("ensuring that the stream is no longer sending messages")
+			broadcast.Publish(ctx, msgs[0])
+		}()
+		Eventually(recvWait).Should(BeClosed())
+		broadcast.Publish(ctx, msgs[1])
+		broadcast.Publish(ctx, msgs[0])
 	})
 })
