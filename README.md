@@ -20,8 +20,8 @@ package main
 import (
     "encoding/json"
     "fmt"
-	"os/signal"
-	"syscall"
+    "os/signal"
+    "syscall"
 
     "github.com/smousa/kafka-grpc-stream/protobuf"
     "google.golang.org/grpc"
