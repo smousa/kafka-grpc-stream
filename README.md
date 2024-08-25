@@ -24,8 +24,8 @@ import (
 	"syscall"
 
     "github.com/smousa/kafka-grpc-stream/protobuf"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
+    "google.golang.org/grpc"
+    "google.golang.org/grpc/credentials/insecure"
 )
 
 const ClientUrl = "localhost:9000"
