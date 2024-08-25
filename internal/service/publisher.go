@@ -20,7 +20,7 @@ type StreamPublisher struct {
 	stream    SenderStream
 }
 
-func NewStreamPublisher(sessionId string, stream SenderStream) *StreamPublisher {
+func NewStreamPublisher(sessionId string, stream grpc.ServerStreamingServer[protobuf.Message]) *StreamPublisher {
 	return &StreamPublisher{sessionId, stream}
 }
 

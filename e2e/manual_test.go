@@ -70,7 +70,9 @@ var _ = Describe("Manual", func() {
 	It("should subscribe to the topic", func(ctx SpecContext) {
 		stream, err := cli.Subscribe(ctx)
 		Ω(err).ShouldNot(HaveOccurred())
-		req := &protobuf.SubscribeRequest{}
+		req := &protobuf.SubscribeRequest{
+			Keys: []string{"*"},
+		}
 		Ω(stream.Send(req)).Should(Succeed())
 
 		car := gofakeit.Car()
@@ -109,6 +111,82 @@ var _ = Describe("Manual", func() {
 				{
 					Key:   "transmission",
 					Value: car.Transmission,
+				},
+			}),
+			"Timestamp": BeNumerically("~", time.Now().UnixMilli(), 10000),
+			"Topic":     Equal(topic),
+			"Partition": BeEquivalentTo(0),
+			"Offset":    BeNumerically(">=", 0),
+		})))
+	}, SpecTimeout(10*time.Second))
+
+	It("should filter messages with matching keys", func(ctx SpecContext) {
+		stream, err := cli.Subscribe(ctx)
+		Ω(err).ShouldNot(HaveOccurred())
+		req := &protobuf.SubscribeRequest{
+			Keys: []string{"second"},
+		}
+		Ω(stream.Send(req)).Should(Succeed())
+
+		car1 := gofakeit.Car()
+		car2 := gofakeit.Car()
+
+		records := []*kgo.Record{
+			{
+				Key:   []byte("first"),
+				Value: []byte(car1.Model),
+				Headers: []kgo.RecordHeader{
+					{
+						Key:   "type",
+						Value: []byte(car1.Type),
+					},
+					{
+						Key:   "fuel",
+						Value: []byte(car1.Fuel),
+					},
+					{
+						Key:   "transmission",
+						Value: []byte(car1.Transmission),
+					},
+				},
+				Topic: topic,
+			}, {
+				Key:   []byte("second"),
+				Value: []byte(car2.Model),
+				Headers: []kgo.RecordHeader{
+					{
+						Key:   "type",
+						Value: []byte(car2.Type),
+					},
+					{
+						Key:   "fuel",
+						Value: []byte(car2.Fuel),
+					},
+					{
+						Key:   "transmission",
+						Value: []byte(car2.Transmission),
+					},
+				},
+				Topic: topic,
+			},
+		}
+
+		Ω(kafkaClient.ProduceSync(ctx, records...).FirstErr()).ShouldNot(HaveOccurred())
+		Ω(stream.Recv()).Should(PointTo(MatchFields(IgnoreExtras, Fields{
+			"Key":   BeEquivalentTo(records[1].Key),
+			"Value": BeEquivalentTo(records[1].Value),
+			"Headers": Equal([]*protobuf.Header{
+				{
+					Key:   "type",
+					Value: car2.Type,
+				},
+				{
+					Key:   "fuel",
+					Value: car2.Fuel,
+				},
+				{
+					Key:   "transmission",
+					Value: car2.Transmission,
 				},
 			}),
 			"Timestamp": BeNumerically("~", time.Now().UnixMilli(), 10000),
