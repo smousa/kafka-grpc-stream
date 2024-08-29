@@ -5,6 +5,7 @@ filter, and stream data from kafka topics. More details coming soon!
 
 ## Features
 
+* 1.1.0 - Buffered broadcasting
 * 1.0.0 - Key glob filtering
 * 0.0.5 - Manual subscribe to a topic/partition server through grpc client
 * 0.0.4 - Key registration (maps keys to partitions)
