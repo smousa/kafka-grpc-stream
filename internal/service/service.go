@@ -1,8 +1,10 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/gobwas/glob"
 	"github.com/google/uuid"
@@ -18,46 +20,86 @@ type BidiStream interface {
 	grpc.BidiStreamingServer[protobuf.SubscribeRequest, protobuf.Message]
 }
 
+type SessionRegistry interface {
+	RegisterSession(ctx context.Context, pub subscribe.Publisher)
+}
+
 type Service struct {
 	protobuf.UnimplementedKafkaStreamerServer
-	broadcast *subscribe.Broadcast
+	registry SessionRegistry
 }
 
-func New(broadcast *subscribe.Broadcast) *Service {
-	return &Service{broadcast: broadcast}
+func New(registry SessionRegistry) *Service {
+	return &Service{registry: registry}
 }
 
-//nolint:wrapcheck
 func (s *Service) Subscribe(stream grpc.BidiStreamingServer[protobuf.SubscribeRequest, protobuf.Message]) error {
-	// Generate the session id
+	// Set up the publisher
 	id := uuid.Must(uuid.NewV7()).String()
 	pub := subscribe.NewFilterPublisher(NewStreamPublisher(id, stream))
 
-	s.broadcast.RegisterSession(id, pub)
-	defer s.broadcast.UnregisterSession(id)
+	// Wait for the initial subscription
+	filterFunc, err := s.handle(stream)
+	if err != nil {
+		if errors.Is(err, context.Canceled) {
+			return nil
+		}
+
+		return err
+	}
+
+	pub.SetFilter(filterFunc)
+
+	// Register the session
+	var wg sync.WaitGroup
+	defer wg.Wait()
+
+	ctx, cancel := context.WithCancel(stream.Context())
+	defer cancel()
+
+	wg.Add(1)
+
+	go func() {
+		defer wg.Done()
+		s.registry.RegisterSession(ctx, pub)
+	}()
 
 	// Wait for the client to close the connection
 	for {
-		req, err := stream.Recv()
+		filterFunc, err = s.handle(stream)
 		if err != nil {
-			if status.Code(err) == codes.Canceled {
-				break
+			if errors.Is(err, context.Canceled) {
+				return nil
 			}
 
-			return status.Error(codes.Unknown, errors.Wrap(err, "unexpected client error").Error())
+			return err
 		}
 
-		// Try to compile key filter
-		keyPattern, err := glob.Compile(fmt.Sprintf("{%s}", strings.Join(req.GetKeys(), ",")))
-		if err != nil {
-			return status.Error(codes.InvalidArgument, errors.Wrap(err, "could not compile criteria for keys").Error())
+		pub.SetFilter(filterFunc)
+	}
+}
+
+//nolint:wrapcheck
+func (s *Service) handle(stream grpc.BidiStreamingServer[protobuf.SubscribeRequest, protobuf.Message]) (func(*subscribe.Message) bool, error) {
+	// wait for the request
+	req, err := stream.Recv()
+	if err != nil {
+		if status.Code(err) == codes.Canceled {
+			return nil, context.Canceled
 		}
 
-		// Update the key filter
-		pub.SetFilter(func(m *subscribe.Message) bool {
-			return keyPattern.Match(m.Key)
-		})
+		return nil, status.Error(codes.Unknown, errors.Wrap(err, "unexpected client error").Error())
 	}
 
-	return nil
+	// validate the request
+
+	// validate the key globs
+	keyPat, err := glob.Compile(fmt.Sprintf("{%s}", strings.Join(req.GetKeys(), ",")))
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, errors.Wrap(err, "invalid key glob").Error())
+	}
+
+	return func(msg *subscribe.Message) bool {
+		return keyPat.Match(msg.Key)
+	}, nil
 }
