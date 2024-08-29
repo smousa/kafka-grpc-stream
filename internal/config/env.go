@@ -49,6 +49,7 @@ func loadEnv(v *viper.Viper) {
 	v.MustBindEnv("server.tls.certFile", "SERVER_TLS_CERT_FILE")
 	v.MustBindEnv("server.tls.keyFile", "SERVER_TLS_KEY_FILE")
 	v.MustBindEnv("server.maxConcurrentStreams", "SERVER_MAX_CONCURRENT_STREAMS")
+	v.MustBindEnv("server.broadcast.bufferSize", "SERVER_BROADCAST_BUFFER_SIZE")
 
 	v.MustBindEnv("worker.topic", "WORKER_TOPIC")
 	v.MustBindEnv("worker.partition", "WORKER_PARTITION")
@@ -56,6 +57,7 @@ func loadEnv(v *viper.Viper) {
 
 	v.SetDefault("log.level", "info")
 	v.SetDefault("log.timeFieldFormat", "unix")
+	v.SetDefault("server.broadcast.bufferSize", 1)
 	v.SetDefault("worker.leaseExpirySeconds", DefaultWorkerLeaseExpirySeconds)
 }
 

@@ -37,6 +37,7 @@ var _ = Describe("Registry", func() {
 		cmd.Env = append(os.Environ(),
 			"LISTEN_URL=localhost:9000",
 			"LISTEN_ADVERTISE_URL=localhost:9000",
+			"SERVER_BROADCAST_BUFFER_SIZE=5",
 			"WORKER_TOPIC="+topic,
 			"WORKER_PARTITION=0",
 		)

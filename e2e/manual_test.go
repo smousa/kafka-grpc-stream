@@ -35,6 +35,7 @@ var _ = Describe("Manual", func() {
 		cmd.Env = append(os.Environ(),
 			"LISTEN_URL=localhost:9000",
 			"LISTEN_ADVERTISE_URL=localhost:9000",
+			"SERVER_BROADCAST_BUFFER_SIZE=10",
 			"WORKER_TOPIC="+topic,
 			"WORKER_PARTITION=0",
 		)
@@ -194,5 +195,37 @@ var _ = Describe("Manual", func() {
 			"Partition": BeEquivalentTo(0),
 			"Offset":    BeNumerically(">=", 0),
 		})))
+	}, SpecTimeout(10*time.Second))
+
+	It("should load delayed messages", func(ctx SpecContext) {
+		var records = make([]*kgo.Record, 5)
+		for i := range records {
+			records[i] = &kgo.Record{
+				Key:   []byte(gofakeit.ProductName()),
+				Value: []byte(gofakeit.ProductFeature()),
+				Topic: topic,
+			}
+		}
+		Ω(kafkaClient.ProduceSync(ctx, records...).FirstErr()).ShouldNot(HaveOccurred())
+		time.Sleep(5 * time.Second)
+
+		stream, err := cli.Subscribe(ctx)
+		Ω(err).ShouldNot(HaveOccurred())
+		req := &protobuf.SubscribeRequest{
+			Keys: []string{"*"},
+		}
+		Ω(stream.Send(req)).Should(Succeed())
+		for _, r := range records {
+			Ω(stream.Recv()).
+				Should(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Key":       BeEquivalentTo(r.Key),
+					"Value":     BeEquivalentTo(r.Value),
+					"Headers":   BeEmpty(),
+					"Timestamp": BeNumerically("~", time.Now().UnixMilli(), 10000),
+					"Topic":     Equal(topic),
+					"Partition": BeEquivalentTo(0),
+					"Offset":    BeNumerically(">=", 0),
+				})))
+		}
 	}, SpecTimeout(10*time.Second))
 })

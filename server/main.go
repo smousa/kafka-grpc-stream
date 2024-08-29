@@ -101,7 +101,7 @@ func main() {
 	}()
 
 	// Set up the publisher
-	broadcast := subscribe.NewBroadcast()
+	broadcast := subscribe.NewBufferedBroadcast(viper.GetInt("server.broadcast.bufferSize"))
 	publisher := subscribe.Publishers{
 		registry,
 		broadcast,
