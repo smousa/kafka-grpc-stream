@@ -290,11 +290,24 @@ func (r *EtcdRegistry) rebalance(ctx context.Context, hostPath, sessionPath, rou
 	}
 
 	// Rebalance sessions
-	routeMap := make(map[string]string, sessionResp.Count)
+	var (
+		routeMap       = make(map[string]string, sessionResp.Count)
+		hostIndex      = -1
+		sessionEnd     = 0
+		hostSessionDiv = int(sessionResp.Count / hostResp.Count)
+		hostSessionMod = int(sessionResp.Count % hostResp.Count)
+	)
 
 	for i, session := range sessionResp.Kvs {
+		if i >= sessionEnd {
+			sessionEnd += hostSessionDiv
+			if hostIndex += 1; hostIndex < hostSessionMod {
+				sessionEnd += 1
+			}
+		}
+
 		key := path.Join(routePath, path.Base(string(session.Key)))
-		value := string(hostResp.Kvs[i%int(hostResp.Count)].Value)
+		value := string(hostResp.Kvs[hostIndex].Value)
 		routeMap[key] = value
 	}
 

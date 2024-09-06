@@ -5,6 +5,7 @@ filter, and stream data from kafka topics. More details coming soon!
 
 ## Features
 
+* 1.2.1 - More stable load balancer
 * 1.2.0 - Monitoring and CLI tool
 * 1.1.0 - Buffered broadcasting
 * 1.0.0 - Key glob filtering
