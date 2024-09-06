@@ -18,16 +18,8 @@ func NewKafkaClient() (*kgo.Client, error) {
 		},
 	}))
 
-	if viper.IsSet("kafka.brokerMaxReadBytes") {
-		opts = append(opts, kgo.BrokerMaxReadBytes(viper.GetInt32("kafka.brokerMaxReadBytes")))
-	}
-
 	if viper.IsSet("kafka.fetchMaxBytes") {
 		opts = append(opts, kgo.FetchMaxBytes(viper.GetInt32("kafka.fetchMaxBytes")))
-	}
-
-	if viper.IsSet("kafka.fetchMaxPartitionBytes") {
-		opts = append(opts, kgo.FetchMaxPartitionBytes(viper.GetInt32("kafka.fetchMaxPartitionBytes")))
 	}
 
 	if viper.IsSet("kafka.fetchMaxWait") {

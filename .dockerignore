@@ -1,0 +1,22 @@
+# Configuration
+.env
+.git
+.git*
+.*.yaml
+*.out
+
+# Docker resources
+Dockerfile
+docker-compose.yaml
+
+# Documentation
+LICENSE
+VERSION
+*.md
+
+# Make resources
+Makefile
+*.mk
+
+# Etc...
+examples

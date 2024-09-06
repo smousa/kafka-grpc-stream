@@ -23,9 +23,9 @@ func (_m *MockSessionRegistry) EXPECT() *MockSessionRegistry_Expecter {
 	return &MockSessionRegistry_Expecter{mock: &_m.Mock}
 }
 
-// RegisterSession provides a mock function with given fields: _a0, _a1
-func (_m *MockSessionRegistry) RegisterSession(_a0 context.Context, _a1 subscribe.Publisher) {
-	_m.Called(_a0, _a1)
+// RegisterSession provides a mock function with given fields: ctx, pub
+func (_m *MockSessionRegistry) RegisterSession(ctx context.Context, pub subscribe.Publisher) {
+	_m.Called(ctx, pub)
 }
 
 // MockSessionRegistry_RegisterSession_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RegisterSession'
@@ -34,13 +34,13 @@ type MockSessionRegistry_RegisterSession_Call struct {
 }
 
 // RegisterSession is a helper method to define mock.On call
-//   - _a0 context.Context
-//   - _a1 subscribe.Publisher
-func (_e *MockSessionRegistry_Expecter) RegisterSession(_a0 interface{}, _a1 interface{}) *MockSessionRegistry_RegisterSession_Call {
-	return &MockSessionRegistry_RegisterSession_Call{Call: _e.mock.On("RegisterSession", _a0, _a1)}
+//   - ctx context.Context
+//   - pub subscribe.Publisher
+func (_e *MockSessionRegistry_Expecter) RegisterSession(ctx interface{}, pub interface{}) *MockSessionRegistry_RegisterSession_Call {
+	return &MockSessionRegistry_RegisterSession_Call{Call: _e.mock.On("RegisterSession", ctx, pub)}
 }
 
-func (_c *MockSessionRegistry_RegisterSession_Call) Run(run func(_a0 context.Context, _a1 subscribe.Publisher)) *MockSessionRegistry_RegisterSession_Call {
+func (_c *MockSessionRegistry_RegisterSession_Call) Run(run func(ctx context.Context, pub subscribe.Publisher)) *MockSessionRegistry_RegisterSession_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(context.Context), args[1].(subscribe.Publisher))
 	})

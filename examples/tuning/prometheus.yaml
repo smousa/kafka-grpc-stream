@@ -1,0 +1,34 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+
+- job_name: server
+  static_configs:
+    - targets: [server:2112]
+      labels:
+        topic: bitmex.trade
+        partition: 0
+
+- job_name: collector
+  static_configs:
+    - targets: [collector:4195]
+
+- job_name: redpanda
+  metrics_path: /public_metrics
+  static_configs:
+    - targets: [redpanda:9644]
+  metric_relabel_configs:
+    - source_labels: [redpanda_topic]
+      regex: '(.+)'
+      replacement: '${1}'
+      target_label: topic
+    - source_labels: [redpanda_partition]
+      regex: '(.+)'
+      replacement: '${1}'
+      target_label: partition
+
+- job_name: cadvisor
+  static_configs:
+    - targets: [cadvisor:8080]

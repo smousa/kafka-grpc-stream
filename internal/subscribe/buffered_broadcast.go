@@ -3,17 +3,20 @@ package subscribe
 import (
 	"context"
 	"sync"
+	"time"
+
+	"github.com/smousa/kafka-grpc-stream/internal/metrics"
 )
 
 type session struct {
 	head  int
 	empty bool
-	ready chan struct{}
 }
 
 type BufferedBroadcast struct {
 	mu       sync.RWMutex
 	buf      []*Message
+	ready    chan struct{}
 	tail     int
 	size     int
 	limit    int
@@ -23,6 +26,7 @@ type BufferedBroadcast struct {
 func NewBufferedBroadcast(n int) *BufferedBroadcast {
 	return &BufferedBroadcast{
 		buf:      make([]*Message, n),
+		ready:    make(chan struct{}),
 		limit:    n,
 		sessions: make(map[*session]struct{}),
 	}
@@ -32,29 +36,40 @@ func (bb *BufferedBroadcast) Publish(ctx context.Context, msg *Message) {
 	bb.mu.Lock()
 	defer bb.mu.Unlock()
 
-	// add the message to the buffer
-	bb.buf[bb.tail] = msg
+	// notify that a message is added
+	defer func() {
+		close(bb.ready)
+		bb.ready = make(chan struct{})
+	}()
 
-	// update the buffer size if less than the limit
+	// update the current buffer fill size
 	if bb.size < bb.limit {
 		bb.size += 1
+	} else {
+		// report the age of the evicted message
+		metrics.BufferedBroadcastEvictionTimestampSeconds.Set(
+			float64(bb.buf[bb.tail].Timestamp.UnixMilli()) / float64(time.Second.Milliseconds()),
+		)
 	}
+
+	// add the message to the buffer
+	bb.buf[bb.tail] = msg
 
 	// get the next tail
 	tail := (bb.tail + 1) % bb.limit
 
 	// update all the sessions
 	for sess := range bb.sessions {
-		if sess.empty {
-			// notify that a record has been added
-			close(sess.ready)
-			sess.ready = make(chan struct{})
-			sess.empty = false
-		} else if sess.head == bb.tail {
+		if sess.head == bb.tail && !sess.empty {
 			// the buffer is full, so move the head to indicate that the record
 			// has been evicted.
 			sess.head = tail
+
+			// report the dropped message
+			metrics.BufferedBroadcastDroppedMessagesTotal.Inc()
 		}
+
+		sess.empty = false
 	}
 
 	// update the tail
@@ -69,7 +84,6 @@ func (bb *BufferedBroadcast) RegisterSession(ctx context.Context, pub Publisher)
 
 		sess := &session{
 			empty: bb.size == 0,
-			ready: make(chan struct{}),
 		}
 
 		// set the head pointer if the buffer is full
@@ -98,7 +112,7 @@ func (bb *BufferedBroadcast) RegisterSession(ctx context.Context, pub Publisher)
 
 		if sess.empty {
 			// buffer is empty, so wait for buffer
-			ready := sess.ready
+			ready := bb.ready
 			bb.mu.RUnlock()
 			select {
 			case <-ready:

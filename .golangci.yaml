@@ -14,6 +14,8 @@ linters:
     - musttag
     - exhaustruct
     - gofumpt
+    - gochecknoglobals
+    - nonamedreturns
     - dupl              # info
     - nestif            # info
     - gocognit          # info

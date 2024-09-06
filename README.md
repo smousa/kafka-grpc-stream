@@ -5,81 +5,12 @@ filter, and stream data from kafka topics. More details coming soon!
 
 ## Features
 
+* 1.2.0 - Monitoring and CLI tool
 * 1.1.0 - Buffered broadcasting
 * 1.0.0 - Key glob filtering
 * 0.0.5 - Manual subscribe to a topic/partition server through grpc client
 * 0.0.4 - Key registration (maps keys to partitions)
 * 0.0.3 - Server-side host-session routing
-
-## Usage
-
-Use the grpc go client to connect to the server.
-
-```go
-package main
-
-import (
-    "encoding/json"
-    "fmt"
-    "os/signal"
-    "syscall"
-
-    "github.com/smousa/kafka-grpc-stream/protobuf"
-    "google.golang.org/grpc"
-    "google.golang.org/grpc/credentials/insecure"
-)
-
-const ClientUrl = "localhost:9000"
-
-func main() {
-    // set up the client
-    cli, err := grpc.NewClient(ClientUrl,
-        grpc.WithTransportCredentials(insecure.NewCredentials()),
-    )
-    if err != nil {
-        fmt.Println("Error connecting to client:", err)
-        return
-    }
-    defer cli.Close()
-
-    ctx, cancel = signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-    defer cancel()
-
-    // create the subsciption
-    stream, err := cli.Subscribe(ctx)
-    if err != nil {
-        fmt.Println("Error creating subscription:", err)
-        return
-    }
-
-    // provide the filter
-    err = stream.Send(&protobuf.SubscribeRequest{
-        Keys: []string{"*"}, // send everything
-    })
-    if err != nil {
-        fmt.Println("Error sending subscription filter:", err)
-        return
-    }
-
-    // watch the data stream in
-    for {
-        msg, err := stream.Recv()
-        if err != nil {
-            fmt.Println("Closing stream:", err)
-            return
-        }
-
-        msgBytes, err := json.Marshal(msg)
-        if err != nil {
-            fmt.Println("Could not marshal message: ", err)
-            return
-        }
-
-        fmt.Println(string(msgBytes))
-    }
-}
-
-```
 
 ## Local Development
 
@@ -97,7 +28,20 @@ Starts a local etcd, redpanda server and the kafka-grpc-stream server.
 docker compose up
 ```
 
+### CLI
+
+Connect to the running server using the built-in CLI tool.  Default returns all
+results.
+
+```bash
+docker compose exec -it server cli [--keys KEY1 --keys KEY2 ...]
+```
+
+### Redpanda
+
 Access the local redpanda console at http://localhost:8000
+
+### Etcd
 
 Access the etcd via command line:
 
@@ -131,3 +75,8 @@ want to mock:
 ```bash
 make mock
 ```
+
+## Examples
+
+* **[Tuning Demo](./examples/tuning):** A grafana dashboard for tuning a single
+  kafka-grpc-stream server instance.

@@ -7,8 +7,8 @@ import (
 	"sync"
 
 	"github.com/gobwas/glob"
-	"github.com/google/uuid"
 	"github.com/pkg/errors"
+	"github.com/smousa/kafka-grpc-stream/internal/metrics"
 	"github.com/smousa/kafka-grpc-stream/internal/subscribe"
 	"github.com/smousa/kafka-grpc-stream/protobuf"
 	"google.golang.org/grpc"
@@ -30,13 +30,18 @@ type Service struct {
 }
 
 func New(registry SessionRegistry) *Service {
+	// Reset the session count
+	metrics.ActiveSessions.Set(0)
+
 	return &Service{registry: registry}
 }
 
 func (s *Service) Subscribe(stream grpc.BidiStreamingServer[protobuf.SubscribeRequest, protobuf.Message]) error {
-	// Set up the publisher
-	id := uuid.Must(uuid.NewV7()).String()
-	pub := subscribe.NewFilterPublisher(NewStreamPublisher(id, stream))
+	// Track the number of active sessions
+	metrics.ActiveSessions.Inc()
+	defer metrics.ActiveSessions.Dec()
+
+	pub := subscribe.NewFilterPublisher(subscribe.NewStreamPublisher(stream))
 
 	// Wait for the initial subscription
 	filterFunc, err := s.handle(stream)

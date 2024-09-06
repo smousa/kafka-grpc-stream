@@ -47,10 +47,11 @@ FROM base AS build
 RUN mkdir bin
 COPY . .
 
-# Build the server
 ARG BUILD_VERSION=0.0.0
 ARG BUILD_DATE=YYYYMMDD
 ARG BUILD_COMMIT=dev
+
+# Build the server
 RUN go build -o ./bin/server \
 	-buildvcs=false \
 	-ldflags " \
@@ -59,11 +60,17 @@ RUN go build -o ./bin/server \
 		-X 'main.Commit=${BUILD_COMMIT}' \
 	" ./server
 
+# Build the client
+RUN go build -o ./bin/cli ./cli
+
 
 FROM alpine:${ALPINE_VERSION}
 
 # Install the server binary
 COPY --from=build /workspace/bin/server /usr/local/bin/server
+
+# Install the cli binary
+COPY --from=build /workspace/bin/cli /usr/local/bin/cli
 
 # Start the server
 CMD server
