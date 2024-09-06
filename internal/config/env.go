@@ -26,38 +26,45 @@ func loadEtcdEnv(v *viper.Viper) {
 }
 
 func loadKafkaEnv(v *viper.Viper) {
-	v.MustBindEnv("kafka.brokerMaxReadBytes", "KAFKA_BROKER_MAX_READ_BYTES")
 	v.MustBindEnv("kafka.clientId", "KAFKA_CLIENT_ID")
+	v.SetDefault("kafka.clientId", "kafka-grpc-stream")
 	v.MustBindEnv("kafka.seedBrokers", "KAFKA_SEED_BROKERS")
 	v.MustBindEnv("kafka.fetchMaxBytes", "KAFKA_FETCH_MAX_BYTES")
-	v.MustBindEnv("kafka.fetchMaxPartitionBytes", "KAFKA_FETCH_MAX_PARTITION_BYTES")
 	v.MustBindEnv("kafka.fetchMaxWait", "KAFKA_FETCH_MAX_WAIT")
 	v.MustBindEnv("kafka.fetchMinBytes", "KAFKA_FETCH_MIN_BYTES")
 	v.MustBindEnv("kafka.maxConcurrentFetches", "KAFKA_MAX_CONCURRENT_FETCHES")
-
-	v.SetDefault("kafka.clientId", "kafka-grpc-stream")
 }
 
 func loadEnv(v *viper.Viper) {
-	v.MustBindEnv("log.level", "LOG_LEVEL")
-	v.MustBindEnv("log.timeFieldFormat", "LOG_TIME_FIELD_FORMAT")
-
 	v.MustBindEnv("listen.url", "LISTEN_URL")
+	v.SetDefault("listen.url", ":9000")
 	v.MustBindEnv("listen.advertiseUrl", "LISTEN_ADVERTISE_URL")
+	v.SetDefault("listen.advertiseUrl", "localhost:9000")
 
+	v.MustBindEnv("log.level", "LOG_LEVEL")
+	v.SetDefault("log.level", "info")
+	v.MustBindEnv("log.timeFieldFormat", "LOG_TIME_FIELD_FORMAT")
+	v.SetDefault("log.timeFieldFormat", "unix")
+
+	v.MustBindEnv("metrics.enabled", "METRICS_ENABLED")
+	v.MustBindEnv("metrics.listen.url", "METRICS_LISTEN_URL")
+	v.SetDefault("metrics.listen.url", ":2112")
+	v.MustBindEnv("metrics.readTimeout", "METRICS_READ_TIMEOUT")
+	v.SetDefault("metrics.readTimeout", "30s")
+	v.MustBindEnv("metrics.tls.enabled", "METRICS_TLS_ENABLED")
+	v.MustBindEnv("metrics.tls.certFile", "METRICS_TLS_CERT_FILE")
+	v.MustBindEnv("metrics.tls.keyFile", "METRICS_TLS_KEY_FILE")
+
+	v.MustBindEnv("server.broadcast.bufferSize", "SERVER_BROADCAST_BUFFER_SIZE")
+	v.SetDefault("server.broadcast.bufferSize", 1)
+	v.MustBindEnv("server.maxConcurrentStreams", "SERVER_MAX_CONCURRENT_STREAMS")
 	v.MustBindEnv("server.tls.enabled", "SERVER_TLS_ENABLED")
 	v.MustBindEnv("server.tls.certFile", "SERVER_TLS_CERT_FILE")
 	v.MustBindEnv("server.tls.keyFile", "SERVER_TLS_KEY_FILE")
-	v.MustBindEnv("server.maxConcurrentStreams", "SERVER_MAX_CONCURRENT_STREAMS")
-	v.MustBindEnv("server.broadcast.bufferSize", "SERVER_BROADCAST_BUFFER_SIZE")
 
 	v.MustBindEnv("worker.topic", "WORKER_TOPIC")
 	v.MustBindEnv("worker.partition", "WORKER_PARTITION")
 	v.MustBindEnv("worker.leaseExpirySeconds", "WORKER_LEASE_EXPIRY_SECONDS")
-
-	v.SetDefault("log.level", "info")
-	v.SetDefault("log.timeFieldFormat", "unix")
-	v.SetDefault("server.broadcast.bufferSize", 1)
 	v.SetDefault("worker.leaseExpirySeconds", DefaultWorkerLeaseExpirySeconds)
 }
 

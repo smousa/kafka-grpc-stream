@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/rs/zerolog"
+	"github.com/smousa/kafka-grpc-stream/internal/metrics"
 	"github.com/twmb/franz-go/pkg/kgo"
 )
 
@@ -39,6 +40,8 @@ func (k *KafkaSubscriber) Subscribe(ctx context.Context) {
 		})
 
 		fetches.EachRecord(func(record *kgo.Record) {
+			metrics.KafkaMaxOffset.Set(float64(record.Offset))
+
 			headers := make([]Header, len(record.Headers))
 			for i, h := range record.Headers {
 				headers[i] = Header{h.Key, string(h.Value)}

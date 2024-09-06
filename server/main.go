@@ -3,6 +3,8 @@ package main
 import (
 	"bytes"
 	"context"
+	"errors"
+	"net/http"
 	"os"
 	"os/signal"
 	"sync"
@@ -17,7 +19,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-//nolint:gochecknoglobals
 var (
 	Version string
 	Date    string
@@ -81,6 +82,36 @@ func main() {
 	var wg sync.WaitGroup
 	defer wg.Wait()
 
+	// Set up monitoring
+	if viper.GetBool("metrics.enabled") {
+		metricsServer := config.NewMetricsServer()
+		defer metricsServer.Close()
+
+		logger.Info().Msg("Starting metrics server")
+
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+
+			var err error
+			if viper.GetBool("metrics.tls.enabled") {
+				err = metricsServer.ListenAndServeTLS(
+					viper.GetString("metrics.tls.certFile"),
+					viper.GetString("metrics.tls.keyFile"),
+				)
+			} else {
+				err = metricsServer.ListenAndServe()
+			}
+
+			if errors.Is(err, http.ErrServerClosed) {
+				err = nil
+			}
+
+			logger.Err(err).Msg("Metrics server stopped")
+		}()
+	}
+
 	// Set up the registry
 	registry := worker.NewEtcdRegistry(worker.WithEtcdClient(etcdClient))
 
@@ -93,11 +124,7 @@ func main() {
 		defer cancel()
 
 		err := registry.Register(ctx, workerInfo, viper.GetInt64("worker.leaseExpirySeconds"))
-		if err != nil {
-			logger.Error().Err(err).Msg("Worker left the cluster")
-		} else {
-			logger.Info().Msg("Worker left the cluster")
-		}
+		logger.Err(err).Msg("Worker left the cluster")
 	}()
 
 	// Set up the publisher
@@ -120,11 +147,7 @@ func main() {
 		defer rootCancel()
 
 		err := srv.Serve(lis)
-		if err != nil {
-			logger.Error().Err(err).Msg("Server stopped")
-		} else {
-			logger.Info().Msg("Server stopped")
-		}
+		logger.Err(err).Msg("Server stopped")
 	}()
 
 	// Set up the consumer

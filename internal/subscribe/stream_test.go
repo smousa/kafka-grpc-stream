@@ -1,4 +1,4 @@
-package service_test
+package subscribe_test
 
 import (
 	"errors"
@@ -9,21 +9,20 @@ import (
 	. "github.com/onsi/gomega/gstruct"
 	"github.com/stretchr/testify/mock"
 
-	mocks "github.com/smousa/kafka-grpc-stream/internal/mocks/service"
-	"github.com/smousa/kafka-grpc-stream/internal/service"
+	mocks "github.com/smousa/kafka-grpc-stream/internal/mocks/subscribe"
 	"github.com/smousa/kafka-grpc-stream/internal/subscribe"
 )
 
-var _ = Describe("Publisher", func() {
+var _ = Describe("Stream", func() {
 	var (
 		T      = GinkgoT()
 		stream *mocks.MockSenderStream
-		pub    *service.StreamPublisher
+		pub    *subscribe.StreamPublisher
 	)
 
 	BeforeEach(func() {
 		stream = mocks.NewMockSenderStream(T)
-		pub = service.NewStreamPublisher("foo", stream)
+		pub = subscribe.NewStreamPublisher(stream)
 	})
 
 	It("should publish the message", func(ctx SpecContext) {

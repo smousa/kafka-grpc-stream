@@ -1,0 +1,23 @@
+input:
+  websocket:
+    url: wss://ws.bitmex.com/realtime?subscribe=trade
+  processors:
+    - try:
+      - mapping: root = this.data
+      - unarchive:
+          format: json_array
+    - catch:
+      - mapping: root = deleted()
+
+pipeline:
+  processors:
+    - noop: {}
+
+output:
+  kafka_franz:
+    seed_brokers: [${KAFKA_SEED_BROKERS}]
+    topic: bitmex.trade
+    key: ${! json("symbol") }
+
+metrics:
+  prometheus: {}

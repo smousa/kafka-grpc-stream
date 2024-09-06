@@ -1,0 +1,88 @@
+services:
+  # application and dependencies
+  redpanda:
+    extends:
+      service: redpanda
+      file: ../../docker-compose.yaml
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health | grep -E 'Healthy:.+true' || exit 1"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+  etcd:
+    extends:
+      service: etcd
+      file: ../../docker-compose.yaml
+  server:
+    extends:
+      service: server
+      file: ../../docker-compose.yaml
+    environment:
+      - METRICS_ENABLED=true
+      - SERVER_BROADCAST_BUFFER_SIZE=100
+      - WORKER_TOPIC=bitmex.trade
+
+  # data generation and consumption
+  create-topic:
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    extends:
+      service: redpanda
+    entrypoint: /bin/sh
+    command: -c "rpk -X brokers=redpanda:9092 topic create -d bitmex.trade || exit 0 && rpk -X brokers=redpanda:9092 topic create bitmex.trade"
+  collector:
+    depends_on:
+      create-topic:
+        condition: service_completed_successfully
+    image: docker.redpanda.com/redpandadata/connect:${REDPANDA_CONNECT_VERSION}
+    environment:
+      KAFKA_SEED_BROKERS: redpanda:9092
+    volumes:
+      - ./bitmex_trade_collector.yaml:/connect.yaml
+  client:
+    depends_on:
+      - server
+    extends:
+      service: server
+    command:
+      - cli
+      - --server-address=server:9000
+
+  # monitoring
+  redpanda-console:
+    extends:
+      service: redpanda-console
+      file: ../../docker-compose.yaml
+  cadvisor:
+    depends_on:
+      - server
+    image: gcr.io/cadvisor/cadvisor:${CADVISOR_VERSION}
+    volumes:
+    - /:/rootfs:ro
+    - /var/run:/var/run:rw
+    - /sys:/sys:ro
+    - /var/lib/docker/:/var/lib/docker:ro
+  prom:
+    depends_on:
+      - server
+      - redpanda
+      - collector
+    image: prom/prometheus:${PROMETHEUS_VERSION}
+    volumes:
+      - ./prometheus.yaml:/etc/prometheus/prometheus.yml
+  grafana:
+    depends_on:
+      - prom
+    image: grafana/grafana:${GRAFANA_VERSION}
+    ports:
+      - 3000:3000
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/grafana.ini:/etc/grafana/grafana.ini
+      - ./grafana/dashboards:/etc/grafana/dashboards
+
+volumes:
+  grafana-data: {}

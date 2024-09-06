@@ -57,11 +57,9 @@ services:
     environment:
       - ETCD_ENDPOINTS=etcd:2379
       - KAFKA_SEED_BROKERS=redpanda:9092
-      - LISTEN_URL=0.0.0.0:9000
       - LISTEN_ADVERTISE_URL=server:9000
       - WORKER_TOPIC=my.test.topic
       - WORKER_PARTITION=0
-      - WORKER_LEASE_EXPIRY_SECONDS=30
 
   redpanda-dev:
     profiles:
