@@ -78,5 +78,5 @@ make mock
 
 ## Examples
 
-* **[Tuning Demo](./examples/tuning): **A grafana dashboard for tuning a single
+* **[Tuning Demo](./examples/tuning):** A grafana dashboard for tuning a single
   kafka-grpc-stream server instance.
