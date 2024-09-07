@@ -73,4 +73,4 @@ COPY --from=build /workspace/bin/server /usr/local/bin/server
 COPY --from=build /workspace/bin/cli /usr/local/bin/cli
 
 # Start the server
-CMD server
+CMD ["server"]

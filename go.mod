@@ -1,6 +1,6 @@
 module github.com/smousa/kafka-grpc-stream
 
-go 1.22.5
+go 1.22.7
 
 require (
 	github.com/brianvoe/gofakeit/v7 v7.0.4

@@ -94,3 +94,21 @@ make proto
 
 * **[Tuning Demo](./examples/tuning):** A grafana dashboard for tuning a single
   kafka-grpc-stream server instance.
+
+## Build Reference
+
+* [Redpanda](https://github.com/redpanda-data/redpanda)
+* [Redpanda Console](https://github.com/redpanda-data/console)
+* [Redpanda Connect](https://github.com/redpanda-data/connect)
+* [Etcd](https://github.com/etcd-io/etcd)
+* [CAdvisor](https://github.com/google/cadvisor)
+* [Prometheus](https://github.com/prometheus/prometheus)
+* [Grafana](https://github.com/grafana/grafana)
+* [Alpine](https://hub.docker.com/_/alpine)
+* [Golang](https://github.com/golang/go)
+* [golangci-lint](https://github.com/golangci/golangci-lint)
+* [protoc](https://github.com/protocolbuffers/protobuf)
+* [protoc-gen-go](https://pkg.go.dev/google.golang.org/protobuf)
+* [protoc-gen-go-grpc](https://pkg.go.dev/google.golang.org/grpc/cmd/protoc-gen-go-grpc)
+* [mockery](https://github.com/vektra/mockery)
+* [go-test-coverage](https://github.com/vladopajic/go-test-coverage)
