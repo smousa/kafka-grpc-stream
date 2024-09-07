@@ -1,9 +1,9 @@
 profile: coverprofile.out
 
 threshold:
-  file: 0
+  file: 80
   package: 80
-  total: 75 # FIXME
+  total: 80
 
 override:
   - threshold: 60

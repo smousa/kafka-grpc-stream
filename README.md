@@ -5,6 +5,7 @@ filter, and stream data from kafka topics. More details coming soon!
 
 ## Features
 
+* 1.3.0 - Max age and min offset filters
 * 1.2.1 - More stable load balancer
 * 1.2.0 - Monitoring and CLI tool
 * 1.1.0 - Buffered broadcasting
@@ -70,11 +71,23 @@ make e2e-test
 docker compose run --rm dev ginkgo help
 ```
 
+### Generators
+
+#### Mocks
+
 Mocks are generated with mockery.  Update .mockery.yaml with the interface/s to
 want to mock:
 
 ```bash
 make mock
+```
+
+#### Protobuf
+
+Protobufs are manages in the protobuf directory.  To generate protobufs:
+
+```bash
+make proto
 ```
 
 ## Examples
