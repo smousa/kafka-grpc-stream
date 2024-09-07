@@ -7,6 +7,7 @@ packages:
       KafkaClient:
       Publisher:
       SenderStream:
+      FilterFunc:
   github.com/smousa/kafka-grpc-stream/internal/service:
     config:
       dir: internal/mocks/service

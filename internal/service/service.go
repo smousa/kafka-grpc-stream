@@ -2,11 +2,8 @@ package service
 
 import (
 	"context"
-	"fmt"
-	"strings"
 	"sync"
 
-	"github.com/gobwas/glob"
 	"github.com/pkg/errors"
 	"github.com/smousa/kafka-grpc-stream/internal/metrics"
 	"github.com/smousa/kafka-grpc-stream/internal/subscribe"
@@ -85,7 +82,7 @@ func (s *Service) Subscribe(stream grpc.BidiStreamingServer[protobuf.SubscribeRe
 }
 
 //nolint:wrapcheck
-func (s *Service) handle(stream grpc.BidiStreamingServer[protobuf.SubscribeRequest, protobuf.Message]) (func(*subscribe.Message) bool, error) {
+func (s *Service) handle(stream grpc.BidiStreamingServer[protobuf.SubscribeRequest, protobuf.Message]) (subscribe.FilterFunc, error) {
 	// wait for the request
 	req, err := stream.Recv()
 	if err != nil {
@@ -97,14 +94,29 @@ func (s *Service) handle(stream grpc.BidiStreamingServer[protobuf.SubscribeReque
 	}
 
 	// validate the request
+	//nolint:gomnd
+	var filters = make([]subscribe.FilterFunc, 0, 3)
 
-	// validate the key globs
-	keyPat, err := glob.Compile(fmt.Sprintf("{%s}", strings.Join(req.GetKeys(), ",")))
-	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, errors.Wrap(err, "invalid key glob").Error())
+	if offset := req.GetMinOffset(); offset > 0 {
+		offsetFilter := subscribe.FilterMinOffset(offset)
+		filters = append(filters, offsetFilter)
 	}
 
-	return func(msg *subscribe.Message) bool {
-		return keyPat.Match(msg.Key)
-	}, nil
+	if age := req.GetMaxAge(); age != "" {
+		ageFilter, err := subscribe.FilterMaxAge(age)
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, err.Error())
+		}
+
+		filters = append(filters, ageFilter)
+	}
+
+	keyFilter, err := subscribe.FilterKeys(req.GetKeys())
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	filters = append(filters, keyFilter)
+
+	return subscribe.FilterAnd(filters...), nil
 }

@@ -228,4 +228,63 @@ var _ = Describe("Manual", func() {
 				})))
 		}
 	}, SpecTimeout(10*time.Second))
+
+	It("should filter messages with the min offset", func(ctx SpecContext) {
+		var records = make([]*kgo.Record, 5)
+		for i := range records {
+			records[i] = &kgo.Record{
+				Key:   []byte(gofakeit.ProductName()),
+				Value: []byte(gofakeit.ProductFeature()),
+				Topic: topic,
+			}
+		}
+		Ω(kafkaClient.ProduceSync(ctx, records...).FirstErr()).ShouldNot(HaveOccurred())
+
+		stream, err := cli.Subscribe(ctx)
+		Ω(err).ShouldNot(HaveOccurred())
+		req := &protobuf.SubscribeRequest{
+			Keys:      []string{"*"},
+			MinOffset: 2,
+		}
+		Ω(stream.Send(req)).Should(Succeed())
+		for _, r := range records[2:] {
+			Ω(stream.Recv()).
+				Should(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Key":       BeEquivalentTo(r.Key),
+					"Value":     BeEquivalentTo(r.Value),
+					"Headers":   BeEmpty(),
+					"Timestamp": BeNumerically("~", time.Now().UnixMilli(), 10000),
+					"Topic":     Equal(topic),
+					"Partition": BeEquivalentTo(0),
+					"Offset":    BeNumerically(">=", 2),
+				})))
+		}
+	}, SpecTimeout(10*time.Second))
+
+	It("should filter messages with a max age", func(ctx SpecContext) {
+		var records = make([]*kgo.Record, 5)
+		for i := range records {
+			records[i] = &kgo.Record{
+				Key:   []byte(gofakeit.ProductName()),
+				Value: []byte(gofakeit.ProductFeature()),
+				Topic: topic,
+			}
+		}
+		Ω(kafkaClient.ProduceSync(ctx, records...).FirstErr()).ShouldNot(HaveOccurred())
+
+		stream, err := cli.Subscribe(ctx)
+		Ω(err).ShouldNot(HaveOccurred())
+		req := &protobuf.SubscribeRequest{
+			Keys:   []string{"*"},
+			MaxAge: "5s",
+		}
+		Ω(stream.Send(req)).Should(Succeed())
+		Ω(stream.Recv()).
+			Should(PointTo(MatchFields(IgnoreExtras, Fields{
+				"Timestamp": BeNumerically("~", time.Now().UnixMilli(), 5000),
+				"Topic":     Equal(topic),
+				"Partition": BeEquivalentTo(0),
+				"Offset":    BeNumerically(">=", 0),
+			})))
+	}, SpecTimeout(30*time.Second))
 })

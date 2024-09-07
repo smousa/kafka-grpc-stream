@@ -56,8 +56,30 @@ var _ = Describe("Service", func() {
 		cancel()
 	}, SpecTimeout(5*time.Second))
 
-	It("should return an error if the client raises an error", func(ctx SpecContext) {
+	It("should return an error if the receiver raises an error", func(ctx SpecContext) {
 		stream.On("Context").Return(ctx).Maybe()
+		stream.On("Recv").
+			Return(nil, status.Error(codes.Unknown, "error")).
+			Once()
+
+		Ω(svc.Subscribe(stream)).ShouldNot(Succeed())
+	})
+
+	It("should return an error if the receiver eventually raises an error", func(ctx SpecContext) {
+		broadcast.On("RegisterSession", mock.Anything, mock.Anything).Once().
+			Run(func(args mock.Arguments) {
+				defer GinkgoRecover()
+				ctx, ok := args.Get(0).(context.Context)
+				Ω(ok).Should(BeTrue())
+				<-ctx.Done()
+			})
+
+		stream.On("Context").Return(ctx).Maybe()
+		stream.On("Recv").
+			Return(&protobuf.SubscribeRequest{
+				Keys: []string{"*"},
+			}, nil).
+			Once()
 		stream.On("Recv").
 			Return(nil, status.Error(codes.Unknown, "error")).
 			Once()
@@ -241,6 +263,17 @@ var _ = Describe("Service", func() {
 		Ω(svc.Subscribe(stream)).ShouldNot(Succeed())
 	}, SpecTimeout(5*time.Second))
 
+	It("should return an error if the age filter cannot be parsed", func(ctx SpecContext) {
+		stream.On("Context").Return(ctx).Maybe()
+		stream.On("Recv").
+			Return(&protobuf.SubscribeRequest{
+				Keys:   []string{"*"},
+				MaxAge: "foo",
+			}, nil).
+			Once()
+		Ω(svc.Subscribe(stream)).ShouldNot(Succeed())
+	})
+
 	It("should return records that have matching keys", func(sCtx SpecContext) {
 		ctx, cancel := context.WithCancel(sCtx)
 
@@ -339,6 +372,209 @@ var _ = Describe("Service", func() {
 		}()
 		Eventually(sendWait).Should(BeClosed())
 		cancel()
+	}, SpecTimeout(5*time.Second))
+
+	It("should return records with a matching min offset", func(sCtx SpecContext) {
+		ctx, cancel := context.WithCancel(sCtx)
+
+		var recvWait, sendWait = make(chan struct{}), make(chan struct{})
+
+		msgs := []*subscribe.Message{
+			{
+				Key:   "foo",
+				Value: []byte("bar"),
+				Headers: []subscribe.Header{
+					{
+						Key:   "hi",
+						Value: "bye",
+					},
+				},
+				Timestamp: time.Now(),
+				Topic:     "my.topic",
+				Partition: 1,
+				Offset:    2,
+			}, {
+				Key:   "fuh",
+				Value: []byte("bar"),
+				Headers: []subscribe.Header{
+					{
+						Key:   "hi",
+						Value: "bye",
+					},
+				},
+				Timestamp: time.Now(),
+				Topic:     "my.topic",
+				Partition: 1,
+				Offset:    4,
+			},
+		}
+
+		broadcast.On("RegisterSession", mock.Anything, mock.Anything).
+			Once().
+			Run(func(args mock.Arguments) {
+				defer GinkgoRecover()
+				ctx, ok := args.Get(0).(context.Context)
+				Ω(ok).Should(BeTrue())
+
+				pub, ok := args.Get(1).(subscribe.Publisher)
+				Ω(ok).Should(BeTrue())
+
+				Eventually(recvWait).Should(BeClosed())
+				for _, msg := range msgs {
+					pub.Publish(ctx, msg)
+				}
+				close(sendWait)
+				<-ctx.Done()
+			})
+		stream.On("Context").Return(ctx)
+		stream.On("Recv").
+			Return(&protobuf.SubscribeRequest{
+				Keys:      []string{"*"},
+				MinOffset: 3,
+			}, nil).
+			Once().
+			Run(func(mock.Arguments) {
+				close(recvWait)
+			})
+		stream.On("Recv").
+			Return(nil, status.Error(codes.Canceled, context.Canceled.Error())).
+			Once().
+			Run(func(mock.Arguments) {
+				<-ctx.Done()
+			})
+		stream.On("Send", mock.AnythingOfType("*protobuf.Message")).
+			Return(errors.New("error")).
+			Once().
+			Run(func(args mock.Arguments) {
+				defer GinkgoRecover()
+				Ω(args.Get(0)).Should(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Key":   BeEquivalentTo(msgs[1].Key),
+					"Value": BeEquivalentTo(msgs[1].Value),
+					"Headers": MatchAllElementsWithIndex(IndexIdentity, Elements{
+						"0": PointTo(MatchFields(IgnoreExtras, Fields{
+							"Key":   Equal("hi"),
+							"Value": Equal("bye"),
+						})),
+					}),
+					"Timestamp": Equal(msgs[1].Timestamp.UnixMilli()),
+					"Topic":     Equal(msgs[1].Topic),
+					"Partition": Equal(msgs[1].Partition),
+					"Offset":    Equal(msgs[1].Offset),
+				})))
+			})
+
+		var wg sync.WaitGroup
+		defer wg.Wait()
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			defer GinkgoRecover()
+			Ω(svc.Subscribe(stream)).Should(Succeed())
+		}()
+		Eventually(sendWait).Should(BeClosed())
+		cancel()
+	}, SpecTimeout(5*time.Second))
+
+	It("should return records with a matching max age", func(sCtx SpecContext) {
+		ctx, cancel := context.WithCancel(sCtx)
+
+		var recvWait, sendWait = make(chan struct{}), make(chan struct{})
+
+		msgs := []*subscribe.Message{
+			{
+				Key:   "foo",
+				Value: []byte("bar"),
+				Headers: []subscribe.Header{
+					{
+						Key:   "hi",
+						Value: "bye",
+					},
+				},
+				Timestamp: time.Now().Add(-10 * time.Second),
+				Topic:     "my.topic",
+				Partition: 1,
+				Offset:    2,
+			}, {
+				Key:   "fuh",
+				Value: []byte("bar"),
+				Headers: []subscribe.Header{
+					{
+						Key:   "hi",
+						Value: "bye",
+					},
+				},
+				Timestamp: time.Now(),
+				Topic:     "my.topic",
+				Partition: 1,
+				Offset:    4,
+			},
+		}
+
+		broadcast.On("RegisterSession", mock.Anything, mock.Anything).
+			Once().
+			Run(func(args mock.Arguments) {
+				defer GinkgoRecover()
+				ctx, ok := args.Get(0).(context.Context)
+				Ω(ok).Should(BeTrue())
+
+				pub, ok := args.Get(1).(subscribe.Publisher)
+				Ω(ok).Should(BeTrue())
+
+				Eventually(recvWait).Should(BeClosed())
+				for _, msg := range msgs {
+					pub.Publish(ctx, msg)
+				}
+				close(sendWait)
+				<-ctx.Done()
+			})
+		stream.On("Context").Return(ctx)
+		stream.On("Recv").
+			Return(&protobuf.SubscribeRequest{
+				Keys:   []string{"*"},
+				MaxAge: "5s",
+			}, nil).
+			Once().
+			Run(func(mock.Arguments) {
+				close(recvWait)
+			})
+		stream.On("Recv").
+			Return(nil, status.Error(codes.Canceled, context.Canceled.Error())).
+			Once().
+			Run(func(mock.Arguments) {
+				<-ctx.Done()
+			})
+		stream.On("Send", mock.AnythingOfType("*protobuf.Message")).
+			Return(errors.New("error")).
+			Once().
+			Run(func(args mock.Arguments) {
+				defer GinkgoRecover()
+				Ω(args.Get(0)).Should(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Key":   BeEquivalentTo(msgs[1].Key),
+					"Value": BeEquivalentTo(msgs[1].Value),
+					"Headers": MatchAllElementsWithIndex(IndexIdentity, Elements{
+						"0": PointTo(MatchFields(IgnoreExtras, Fields{
+							"Key":   Equal("hi"),
+							"Value": Equal("bye"),
+						})),
+					}),
+					"Timestamp": Equal(msgs[1].Timestamp.UnixMilli()),
+					"Topic":     Equal(msgs[1].Topic),
+					"Partition": Equal(msgs[1].Partition),
+					"Offset":    Equal(msgs[1].Offset),
+				})))
+			})
+
+		var wg sync.WaitGroup
+		defer wg.Wait()
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			defer GinkgoRecover()
+			Ω(svc.Subscribe(stream)).Should(Succeed())
+		}()
+		Eventually(sendWait).Should(BeClosed())
+		cancel()
+
 	}, SpecTimeout(5*time.Second))
 
 	It("should update the filter", func(sCtx SpecContext) {
