@@ -113,7 +113,11 @@ func main() {
 	}
 
 	// Set up the registry
-	registry := worker.NewEtcdRegistry(worker.WithEtcdClient(etcdClient))
+	registry := worker.NewEtcdRegistry(
+		worker.WithEtcdClient(etcdClient),
+		worker.WithWorkerTTL(viper.GetInt64("worker.leaseExpirySeconds")),
+		worker.WithKeyTTL(viper.GetInt64("key.leaseExpirySeconds")),
+	)
 
 	logger.Info().Msg("Registering worker")
 
@@ -123,7 +127,7 @@ func main() {
 		defer wg.Done()
 		defer cancel()
 
-		err := registry.Register(ctx, workerInfo, viper.GetInt64("worker.leaseExpirySeconds"))
+		err := registry.Register(ctx, workerInfo)
 		logger.Err(err).Msg("Worker left the cluster")
 	}()
 

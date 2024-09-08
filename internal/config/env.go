@@ -6,6 +6,7 @@ import (
 
 const (
 	DefaultWorkerLeaseExpirySeconds = 30
+	DefaultKeyLeaseExpirySeconds    = 10
 )
 
 func loadEtcdEnv(v *viper.Viper) {
@@ -66,6 +67,8 @@ func loadEnv(v *viper.Viper) {
 	v.MustBindEnv("worker.partition", "WORKER_PARTITION")
 	v.MustBindEnv("worker.leaseExpirySeconds", "WORKER_LEASE_EXPIRY_SECONDS")
 	v.SetDefault("worker.leaseExpirySeconds", DefaultWorkerLeaseExpirySeconds)
+	v.MustBindEnv("key.leaseExpirySeconds", "KEY_LEASE_EXPIRY_SECONDS")
+	v.SetDefault("key.leaseExpirySeconds", DefaultKeyLeaseExpirySeconds)
 }
 
 //nolint:gochecknoinits

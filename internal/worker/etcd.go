@@ -21,6 +21,9 @@ type EtcdRegistry struct {
 
 	mu       sync.Mutex
 	isLeader bool
+
+	workerTTL int64
+	keyTTL    int64
 }
 
 type EtcdRegistryOp func(*EtcdRegistry)
@@ -33,6 +36,18 @@ func WithEtcdClient(cli *clientv3.Client) EtcdRegistryOp {
 	}
 }
 
+func WithWorkerTTL(ttl int64) EtcdRegistryOp {
+	return func(r *EtcdRegistry) {
+		r.workerTTL = ttl
+	}
+}
+
+func WithKeyTTL(ttl int64) EtcdRegistryOp {
+	return func(r *EtcdRegistry) {
+		r.keyTTL = ttl
+	}
+}
+
 func NewEtcdRegistry(ops ...EtcdRegistryOp) *EtcdRegistry {
 	r := &EtcdRegistry{}
 	for _, op := range ops {
@@ -42,7 +57,7 @@ func NewEtcdRegistry(ops ...EtcdRegistryOp) *EtcdRegistry {
 	return r
 }
 
-func (r *EtcdRegistry) Register(ctx context.Context, worker Worker, ttl int64) error {
+func (r *EtcdRegistry) Register(ctx context.Context, worker Worker) error {
 	log := zerolog.Ctx(ctx)
 
 	// Get the key value data
@@ -59,7 +74,7 @@ func (r *EtcdRegistry) Register(ctx context.Context, worker Worker, ttl int64) e
 	}
 
 	// Grant the lease
-	grant, err := r.lease.Grant(ctx, ttl)
+	grant, err := r.lease.Grant(ctx, r.workerTTL)
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
 			return nil
@@ -359,6 +374,8 @@ func (r *EtcdRegistry) rebalance(ctx context.Context, hostPath, sessionPath, rou
 }
 
 func (r *EtcdRegistry) Publish(ctx context.Context, message *subscribe.Message) {
+	log := zerolog.Ctx(ctx).With().Str("key", message.Key).Logger()
+
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -367,26 +384,55 @@ func (r *EtcdRegistry) Publish(ctx context.Context, message *subscribe.Message) 
 		return
 	}
 
-	keyDir := path.Join("/topics/", message.Topic, "keys/", message.Key)
-	partition := strconv.Itoa(int(message.Partition))
-	_, err := r.kv.Txn(ctx).
-		If(clientv3.Compare(clientv3.Version(keyDir), "=", 0)).
-		Then(clientv3.OpPut(keyDir, partition)).
-		Else(clientv3.OpTxn(
-			[]clientv3.Cmp{
-				clientv3.Compare(clientv3.Value(keyDir), "!=", partition),
-			},
-			[]clientv3.Op{
-				clientv3.OpPut(keyDir, partition),
-			},
-			[]clientv3.Op{},
-		)).
-		Commit()
+	// Load the key
+	key := path.Join("/topics/", message.Topic, "keys/", message.Key)
+	value := strconv.Itoa(int(message.Partition))
 
+	resp, err := r.kv.Get(ctx, key)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().
-			Err(err).
-			Str("key", message.Key).
-			Msg("Could not register key")
+		log.Err(err).Msg("Could not search key")
+
+		return
+	}
+
+	var ops []clientv3.OpOption
+
+	if resp.Count == 0 {
+		grant, err := r.lease.Grant(ctx, r.keyTTL)
+		if err != nil {
+			log.Err(err).Msg("Could not grant lease")
+
+			return
+		}
+
+		ops = append(ops, clientv3.WithLease(grant.ID))
+	} else {
+		keyRoute := resp.Kvs[0]
+
+		if _, err := r.lease.KeepAliveOnce(ctx, clientv3.LeaseID(keyRoute.Lease)); err != nil {
+			if !errors.Is(err, rpctypes.ErrLeaseNotFound) {
+				log.Err(err).Msg("Could not renew lease")
+
+				return
+			}
+
+			grant, err := r.lease.Grant(ctx, r.keyTTL)
+			if err != nil {
+				log.Err(err).Msg("Could not grant lease")
+
+				return
+			}
+
+			ops = append(ops, clientv3.WithLease(grant.ID))
+		}
+
+		if len(ops) == 0 && string(keyRoute.Value) == value {
+			// nothing to update
+			return
+		}
+	}
+
+	if _, err := r.kv.Put(ctx, key, value, ops...); err != nil {
+		log.Err(err).Msg("Could not register key")
 	}
 }

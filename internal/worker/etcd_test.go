@@ -20,7 +20,11 @@ var _ = Describe("EtcdRegistry", func() {
 	var reg *worker.EtcdRegistry
 
 	BeforeEach(func(ctx SpecContext) {
-		reg = worker.NewEtcdRegistry(worker.WithEtcdClient(etcdClient))
+		reg = worker.NewEtcdRegistry(
+			worker.WithEtcdClient(etcdClient),
+			worker.WithWorkerTTL(15),
+			worker.WithKeyTTL(5),
+		)
 
 		// delete all the resources
 		_, err := etcdClient.Delete(ctx, "/", clientv3.WithPrefix())
@@ -42,7 +46,7 @@ var _ = Describe("EtcdRegistry", func() {
 		go func() {
 			defer GinkgoRecover()
 			defer wg.Done()
-			Ω(reg.Register(ctx, w, 15)).Should(Succeed())
+			Ω(reg.Register(ctx, w)).Should(Succeed())
 		}()
 		Eventually(watchCh).Should(Receive())
 
@@ -86,7 +90,7 @@ var _ = Describe("EtcdRegistry", func() {
 		go func() {
 			defer GinkgoRecover()
 			defer wg.Done()
-			Ω(reg.Register(ctx, w, 15)).Should(Succeed())
+			Ω(reg.Register(ctx, w)).Should(Succeed())
 		}()
 		Eventually(watchCh).Should(Receive())
 
@@ -168,7 +172,7 @@ var _ = Describe("EtcdRegistry", func() {
 		go func() {
 			defer GinkgoRecover()
 			defer wg.Done()
-			Ω(reg.Register(ctx, w, 15)).Should(Succeed())
+			Ω(reg.Register(ctx, w)).Should(Succeed())
 		}()
 		Consistently(watchCh).ShouldNot(Receive())
 
@@ -222,7 +226,7 @@ var _ = Describe("EtcdRegistry", func() {
 		go func() {
 			defer GinkgoRecover()
 			defer wg.Done()
-			Ω(reg.Register(ctx, w, 15)).Should(Succeed())
+			Ω(reg.Register(ctx, w)).Should(Succeed())
 		}()
 		Eventually(watchCh).Should(Receive())
 
@@ -356,7 +360,7 @@ var _ = Describe("EtcdRegistry", func() {
 			go func() {
 				defer GinkgoRecover()
 				defer wg.Done()
-				Ω(reg.Register(ctx, w, 15)).Should(Succeed())
+				Ω(reg.Register(ctx, w)).Should(Succeed())
 			}()
 			By("adding sessions", func() {
 				_, err := etcdClient.Put(ctx, "/topics/foo/0/sessions/session-0", "")
@@ -364,7 +368,10 @@ var _ = Describe("EtcdRegistry", func() {
 			})
 			Eventually(watchCh).Should(Receive())
 
-			putResp, err := etcdClient.Put(sCtx, "/topics/foo/keys/abc", "0")
+			grant, err := etcdClient.Grant(ctx, 5)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			putResp, err := etcdClient.Put(sCtx, "/topics/foo/keys/abc", "0", clientv3.WithLease(grant.ID))
 			Ω(err).ShouldNot(HaveOccurred())
 			reg.Publish(sCtx, &subscribe.Message{Topic: "foo", Partition: 0, Key: "abc"})
 
@@ -392,7 +399,7 @@ var _ = Describe("EtcdRegistry", func() {
 			go func() {
 				defer GinkgoRecover()
 				defer wg.Done()
-				Ω(reg.Register(ctx, w, 15)).Should(Succeed())
+				Ω(reg.Register(ctx, w)).Should(Succeed())
 			}()
 			By("adding sessions", func() {
 				_, err := etcdClient.Put(ctx, "/topics/foo/0/sessions/session-0", "")
@@ -424,7 +431,7 @@ var _ = Describe("EtcdRegistry", func() {
 			go func() {
 				defer GinkgoRecover()
 				defer wg.Done()
-				Ω(reg.Register(ctx, w, 15)).Should(Succeed())
+				Ω(reg.Register(ctx, w)).Should(Succeed())
 			}()
 			By("adding sessions", func() {
 				_, err := etcdClient.Put(ctx, "/topics/foo/0/sessions/session-0", "")
