@@ -5,6 +5,7 @@ filter, and stream data from kafka topics. More details coming soon!
 
 ## Features
 
+* 1.4.0 - Added TTL to key registry keys
 * 1.3.0 - Max age and min offset filters
 * 1.2.1 - More stable load balancer
 * 1.2.0 - Monitoring and CLI tool

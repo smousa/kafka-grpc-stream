@@ -1,7 +1,6 @@
 package subscribe_test
 
 import (
-	"os"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -33,7 +32,7 @@ var _ = SynchronizedBeforeSuite(
 			kafkaClient, err = kgo.NewClient(
 				kgo.AllowAutoTopicCreation(),
 				kgo.SeedBrokers(viper.GetStringSlice("kafka.seedBrokers")...),
-				kgo.WithLogger(kgo.BasicLogger(os.Stderr, kgo.LogLevelDebug, nil)),
+				kgo.WithLogger(kgo.BasicLogger(GinkgoWriter, kgo.LogLevelDebug, nil)),
 			)
 			Ω(err).ShouldNot(HaveOccurred())
 		}
