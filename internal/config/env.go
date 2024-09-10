@@ -67,6 +67,8 @@ func loadEnv(v *viper.Viper) {
 	v.MustBindEnv("worker.partition", "WORKER_PARTITION")
 	v.MustBindEnv("worker.leaseExpirySeconds", "WORKER_LEASE_EXPIRY_SECONDS")
 	v.SetDefault("worker.leaseExpirySeconds", DefaultWorkerLeaseExpirySeconds)
+
+	// UNUSED: the key registry is disabled for now
 	v.MustBindEnv("key.leaseExpirySeconds", "KEY_LEASE_EXPIRY_SECONDS")
 	v.SetDefault("key.leaseExpirySeconds", DefaultKeyLeaseExpirySeconds)
 }
