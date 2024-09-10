@@ -39,7 +39,7 @@ var _ = Describe("EtcdRegistry", func() {
 			Topic:     "foo",
 			Partition: "0",
 		}
-		watchCh := etcdClient.Watch(ctx, "/topics/foo/0/hosts/", clientv3.WithPrefix())
+		watchCh := etcdClient.Watch(ctx, "/t/foo/p/0/host/", clientv3.WithPrefix())
 		var wg sync.WaitGroup
 		defer wg.Wait()
 		wg.Add(1)
@@ -50,13 +50,13 @@ var _ = Describe("EtcdRegistry", func() {
 		}()
 		Eventually(watchCh).Should(Receive())
 
-		hostResp, err := etcdClient.Get(ctx, "/topics/foo/0/hosts/worker-0")
+		hostResp, err := etcdClient.Get(ctx, "/t/foo/p/0/host/worker-0")
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(hostResp).Should(PointTo(MatchFields(IgnoreExtras, Fields{
 			"Count": BeEquivalentTo(1),
 			"Kvs": MatchAllElementsWithIndex(IndexIdentity, Elements{
 				"0": PointTo(MatchFields(IgnoreExtras, Fields{
-					"Key": BeEquivalentTo("/topics/foo/0/hosts/worker-0"),
+					"Key": BeEquivalentTo("/t/foo/p/0/host/worker-0"),
 					"Value": WithTransform(func(v []byte) (worker.Worker, error) {
 						w := worker.Worker{}
 						err := json.Unmarshal(v, &w)
@@ -79,11 +79,11 @@ var _ = Describe("EtcdRegistry", func() {
 		}
 
 		By("adding a session before the host is added", func() {
-			_, err := etcdClient.Put(ctx, "/topics/foo/0/sessions/session-0", "")
+			_, err := etcdClient.Put(ctx, "/t/foo/p/0/sess/session-0", "")
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
-		watchCh := etcdClient.Watch(ctx, "/topics/foo/0/routes/", clientv3.WithPrefix())
+		watchCh := etcdClient.Watch(ctx, "/t/foo/p/0/rout/", clientv3.WithPrefix())
 		var wg sync.WaitGroup
 		defer wg.Wait()
 		wg.Add(1)
@@ -94,7 +94,7 @@ var _ = Describe("EtcdRegistry", func() {
 		}()
 		Eventually(watchCh).Should(Receive())
 
-		routeResp, err := etcdClient.Get(ctx, "/topics/foo/0/routes/",
+		routeResp, err := etcdClient.Get(ctx, "/t/foo/p/0/rout/",
 			clientv3.WithPrefix(),
 			clientv3.WithSort(clientv3.SortByKey, clientv3.SortAscend),
 		)
@@ -103,7 +103,7 @@ var _ = Describe("EtcdRegistry", func() {
 			"Count": BeEquivalentTo(1),
 			"Kvs": MatchAllElementsWithIndex(IndexIdentity, Elements{
 				"0": PointTo(MatchFields(IgnoreExtras, Fields{
-					"Key": BeEquivalentTo("/topics/foo/0/routes/session-0"),
+					"Key": BeEquivalentTo("/t/foo/p/0/rout/session-0"),
 					"Value": WithTransform(func(v []byte) (worker.Worker, error) {
 						w := worker.Worker{}
 						err := json.Unmarshal(v, &w)
@@ -114,12 +114,12 @@ var _ = Describe("EtcdRegistry", func() {
 		})))
 
 		By("adding a session after the host is added", func() {
-			_, err := etcdClient.Put(ctx, "/topics/foo/0/sessions/session-1", "")
+			_, err := etcdClient.Put(ctx, "/t/foo/p/0/sess/session-1", "")
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 		Eventually(watchCh).Should(Receive())
 
-		routeResp, err = etcdClient.Get(ctx, "/topics/foo/0/routes/",
+		routeResp, err = etcdClient.Get(ctx, "/t/foo/p/0/rout/",
 			clientv3.WithPrefix(),
 			clientv3.WithSort(clientv3.SortByKey, clientv3.SortAscend),
 		)
@@ -128,7 +128,7 @@ var _ = Describe("EtcdRegistry", func() {
 			"Count": BeEquivalentTo(2),
 			"Kvs": MatchAllElementsWithIndex(IndexIdentity, Elements{
 				"0": PointTo(MatchFields(IgnoreExtras, Fields{
-					"Key": BeEquivalentTo("/topics/foo/0/routes/session-0"),
+					"Key": BeEquivalentTo("/t/foo/p/0/rout/session-0"),
 					"Value": WithTransform(func(v []byte) (worker.Worker, error) {
 						w := worker.Worker{}
 						err := json.Unmarshal(v, &w)
@@ -136,7 +136,7 @@ var _ = Describe("EtcdRegistry", func() {
 					}, Equal(w)),
 				})),
 				"1": PointTo(MatchFields(IgnoreExtras, Fields{
-					"Key": BeEquivalentTo("/topics/foo/0/routes/session-1"),
+					"Key": BeEquivalentTo("/t/foo/p/0/rout/session-1"),
 					"Value": WithTransform(func(v []byte) (worker.Worker, error) {
 						w := worker.Worker{}
 						err := json.Unmarshal(v, &w)
@@ -159,13 +159,13 @@ var _ = Describe("EtcdRegistry", func() {
 		}
 
 		By("adding a host and session before the host is added", func() {
-			_, err := etcdClient.Put(ctx, "/topics/foo/0/hosts/hosts-foo", "")
+			_, err := etcdClient.Put(ctx, "/t/foo/p/0/host/hosts-foo", "")
 			Ω(err).ShouldNot(HaveOccurred())
-			_, err = etcdClient.Put(ctx, "/topics/foo/0/sessions/session-0", "")
+			_, err = etcdClient.Put(ctx, "/t/foo/p/0/sess/session-0", "")
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
-		watchCh := etcdClient.Watch(ctx, "/topics/foo/0/routes/", clientv3.WithPrefix())
+		watchCh := etcdClient.Watch(ctx, "/t/foo/p/0/rout/", clientv3.WithPrefix())
 		var wg sync.WaitGroup
 		defer wg.Wait()
 		wg.Add(1)
@@ -177,12 +177,12 @@ var _ = Describe("EtcdRegistry", func() {
 		Consistently(watchCh).ShouldNot(Receive())
 
 		By("removing the leader", func() {
-			_, err := etcdClient.Delete(ctx, "/topics/foo/0/hosts/hosts-foo")
+			_, err := etcdClient.Delete(ctx, "/t/foo/p/0/host/hosts-foo")
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 		Eventually(watchCh).Should(Receive())
 
-		routeResp, err := etcdClient.Get(ctx, "/topics/foo/0/routes/",
+		routeResp, err := etcdClient.Get(ctx, "/t/foo/p/0/rout/",
 			clientv3.WithPrefix(),
 			clientv3.WithSort(clientv3.SortByKey, clientv3.SortAscend),
 		)
@@ -191,7 +191,7 @@ var _ = Describe("EtcdRegistry", func() {
 			"Count": BeEquivalentTo(1),
 			"Kvs": MatchAllElementsWithIndex(IndexIdentity, Elements{
 				"0": PointTo(MatchFields(IgnoreExtras, Fields{
-					"Key": BeEquivalentTo("/topics/foo/0/routes/session-0"),
+					"Key": BeEquivalentTo("/t/foo/p/0/rout/session-0"),
 					"Value": WithTransform(func(v []byte) (worker.Worker, error) {
 						w := worker.Worker{}
 						err := json.Unmarshal(v, &w)
@@ -213,13 +213,13 @@ var _ = Describe("EtcdRegistry", func() {
 		}
 
 		By("adding sessions", func() {
-			_, err := etcdClient.Put(ctx, "/topics/foo/0/sessions/session-0", "")
+			_, err := etcdClient.Put(ctx, "/t/foo/p/0/sess/session-0", "")
 			Ω(err).ShouldNot(HaveOccurred())
-			_, err = etcdClient.Put(ctx, "/topics/foo/0/sessions/session-1", "")
+			_, err = etcdClient.Put(ctx, "/t/foo/p/0/sess/session-1", "")
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
-		watchCh := etcdClient.Watch(ctx, "/topics/foo/0/routes/", clientv3.WithPrefix())
+		watchCh := etcdClient.Watch(ctx, "/t/foo/p/0/rout/", clientv3.WithPrefix())
 		var wg sync.WaitGroup
 		defer wg.Wait()
 		wg.Add(1)
@@ -230,7 +230,7 @@ var _ = Describe("EtcdRegistry", func() {
 		}()
 		Eventually(watchCh).Should(Receive())
 
-		routeResp, err := etcdClient.Get(ctx, "/topics/foo/0/routes/",
+		routeResp, err := etcdClient.Get(ctx, "/t/foo/p/0/rout/",
 			clientv3.WithPrefix(),
 			clientv3.WithSort(clientv3.SortByKey, clientv3.SortAscend),
 		)
@@ -239,7 +239,7 @@ var _ = Describe("EtcdRegistry", func() {
 			"Count": BeEquivalentTo(2),
 			"Kvs": MatchAllElementsWithIndex(IndexIdentity, Elements{
 				"0": PointTo(MatchFields(IgnoreExtras, Fields{
-					"Key": BeEquivalentTo("/topics/foo/0/routes/session-0"),
+					"Key": BeEquivalentTo("/t/foo/p/0/rout/session-0"),
 					"Value": WithTransform(func(v []byte) (worker.Worker, error) {
 						w := worker.Worker{}
 						err := json.Unmarshal(v, &w)
@@ -247,7 +247,7 @@ var _ = Describe("EtcdRegistry", func() {
 					}, Equal(w)),
 				})),
 				"1": PointTo(MatchFields(IgnoreExtras, Fields{
-					"Key": BeEquivalentTo("/topics/foo/0/routes/session-1"),
+					"Key": BeEquivalentTo("/t/foo/p/0/rout/session-1"),
 					"Value": WithTransform(func(v []byte) (worker.Worker, error) {
 						w := worker.Worker{}
 						err := json.Unmarshal(v, &w)
@@ -267,11 +267,11 @@ var _ = Describe("EtcdRegistry", func() {
 		}
 		w2bytes, err := json.Marshal(w2)
 		Ω(err).ShouldNot(HaveOccurred())
-		_, err = etcdClient.Put(ctx, "/topics/foo/0/hosts/worker-1", string(w2bytes))
+		_, err = etcdClient.Put(ctx, "/t/foo/p/0/host/worker-1", string(w2bytes))
 		Ω(err).ShouldNot(HaveOccurred())
 		Eventually(watchCh).Should(Receive())
 
-		routeResp, err = etcdClient.Get(ctx, "/topics/foo/0/routes/",
+		routeResp, err = etcdClient.Get(ctx, "/t/foo/p/0/rout/",
 			clientv3.WithPrefix(),
 			clientv3.WithSort(clientv3.SortByKey, clientv3.SortAscend),
 		)
@@ -280,7 +280,7 @@ var _ = Describe("EtcdRegistry", func() {
 			"Count": BeEquivalentTo(2),
 			"Kvs": MatchAllElementsWithIndex(IndexIdentity, Elements{
 				"0": PointTo(MatchFields(IgnoreExtras, Fields{
-					"Key": BeEquivalentTo("/topics/foo/0/routes/session-0"),
+					"Key": BeEquivalentTo("/t/foo/p/0/rout/session-0"),
 					"Value": WithTransform(func(v []byte) (worker.Worker, error) {
 						w := worker.Worker{}
 						err := json.Unmarshal(v, &w)
@@ -288,7 +288,7 @@ var _ = Describe("EtcdRegistry", func() {
 					}, Equal(w)),
 				})),
 				"1": PointTo(MatchFields(IgnoreExtras, Fields{
-					"Key": BeEquivalentTo("/topics/foo/0/routes/session-1"),
+					"Key": BeEquivalentTo("/t/foo/p/0/rout/session-1"),
 					"Value": WithTransform(func(v []byte) (worker.Worker, error) {
 						w := worker.Worker{}
 						err := json.Unmarshal(v, &w)
@@ -299,12 +299,12 @@ var _ = Describe("EtcdRegistry", func() {
 		})))
 
 		By("removing a session", func() {
-			_, err := etcdClient.Delete(ctx, "/topics/foo/0/sessions/session-0")
+			_, err := etcdClient.Delete(ctx, "/t/foo/p/0/sess/session-0")
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 		Eventually(watchCh).Should(Receive())
 
-		routeResp, err = etcdClient.Get(ctx, "/topics/foo/0/routes/",
+		routeResp, err = etcdClient.Get(ctx, "/t/foo/p/0/rout/",
 			clientv3.WithPrefix(),
 			clientv3.WithSort(clientv3.SortByKey, clientv3.SortAscend),
 		)
@@ -313,7 +313,7 @@ var _ = Describe("EtcdRegistry", func() {
 			"Count": BeEquivalentTo(1),
 			"Kvs": MatchAllElementsWithIndex(IndexIdentity, Elements{
 				"0": PointTo(MatchFields(IgnoreExtras, Fields{
-					"Key": BeEquivalentTo("/topics/foo/0/routes/session-1"),
+					"Key": BeEquivalentTo("/t/foo/p/0/rout/session-1"),
 					"Value": WithTransform(func(v []byte) (worker.Worker, error) {
 						w := worker.Worker{}
 						err := json.Unmarshal(v, &w)
@@ -330,16 +330,16 @@ var _ = Describe("EtcdRegistry", func() {
 
 		It("should not create the partition key if it is not the leader", func(ctx SpecContext) {
 			reg.Publish(ctx, &subscribe.Message{Topic: "foo", Partition: 0, Key: "abc"})
-			res, err := etcdClient.Get(ctx, "/topics/foo/keys/abc")
+			res, err := etcdClient.Get(ctx, "/t/foo/k/abc")
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(res.Count).Should(BeZero())
 		})
 
 		It("should not update the partition key if it is not the leader", func(ctx SpecContext) {
-			_, err := etcdClient.Put(ctx, "/topics/foo/keys/abc", "1")
+			_, err := etcdClient.Put(ctx, "/t/foo/k/abc", "1")
 			Ω(err).ShouldNot(HaveOccurred())
 			reg.Publish(ctx, &subscribe.Message{Topic: "foo", Partition: 0, Key: "abc"})
-			res, err := etcdClient.Get(ctx, "/topics/foo/keys/abc")
+			res, err := etcdClient.Get(ctx, "/t/foo/k/abc")
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(res.Kvs[0].Value).Should(BeEquivalentTo("1"))
 		})
@@ -353,7 +353,7 @@ var _ = Describe("EtcdRegistry", func() {
 				Topic:     "foo",
 				Partition: "0",
 			}
-			watchCh := etcdClient.Watch(ctx, "/topics/foo/0/routes/", clientv3.WithPrefix())
+			watchCh := etcdClient.Watch(ctx, "/t/foo/p/0/rout/", clientv3.WithPrefix())
 			var wg sync.WaitGroup
 			defer wg.Wait()
 			wg.Add(1)
@@ -363,7 +363,7 @@ var _ = Describe("EtcdRegistry", func() {
 				Ω(reg.Register(ctx, w)).Should(Succeed())
 			}()
 			By("adding sessions", func() {
-				_, err := etcdClient.Put(ctx, "/topics/foo/0/sessions/session-0", "")
+				_, err := etcdClient.Put(ctx, "/t/foo/p/0/sess/session-0", "")
 				Ω(err).ShouldNot(HaveOccurred())
 			})
 			Eventually(watchCh).Should(Receive())
@@ -371,11 +371,11 @@ var _ = Describe("EtcdRegistry", func() {
 			grant, err := etcdClient.Grant(ctx, 5)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			putResp, err := etcdClient.Put(sCtx, "/topics/foo/keys/abc", "0", clientv3.WithLease(grant.ID))
+			putResp, err := etcdClient.Put(sCtx, "/t/foo/k/abc", "0", clientv3.WithLease(grant.ID))
 			Ω(err).ShouldNot(HaveOccurred())
 			reg.Publish(sCtx, &subscribe.Message{Topic: "foo", Partition: 0, Key: "abc"})
 
-			getResp, err := etcdClient.Get(sCtx, "/topics/foo/keys/abc")
+			getResp, err := etcdClient.Get(sCtx, "/t/foo/k/abc")
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(getResp.Count).Should(BeEquivalentTo(1))
 			Ω(getResp.Kvs[0].ModRevision).Should(Equal(putResp.Header.Revision))
@@ -392,7 +392,7 @@ var _ = Describe("EtcdRegistry", func() {
 				Topic:     "foo",
 				Partition: "0",
 			}
-			watchCh := etcdClient.Watch(ctx, "/topics/foo/0/routes/", clientv3.WithPrefix())
+			watchCh := etcdClient.Watch(ctx, "/t/foo/p/0/rout/", clientv3.WithPrefix())
 			var wg sync.WaitGroup
 			defer wg.Wait()
 			wg.Add(1)
@@ -402,14 +402,14 @@ var _ = Describe("EtcdRegistry", func() {
 				Ω(reg.Register(ctx, w)).Should(Succeed())
 			}()
 			By("adding sessions", func() {
-				_, err := etcdClient.Put(ctx, "/topics/foo/0/sessions/session-0", "")
+				_, err := etcdClient.Put(ctx, "/t/foo/p/0/sess/session-0", "")
 				Ω(err).ShouldNot(HaveOccurred())
 			})
 			Eventually(watchCh).Should(Receive())
 
 			reg.Publish(sCtx, &subscribe.Message{Topic: "foo", Partition: 0, Key: "abc"})
 
-			getResp, err := etcdClient.Get(sCtx, "/topics/foo/keys/abc")
+			getResp, err := etcdClient.Get(sCtx, "/t/foo/k/abc")
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(getResp.Count).Should(BeEquivalentTo(1))
 
@@ -424,7 +424,7 @@ var _ = Describe("EtcdRegistry", func() {
 				Topic:     "foo",
 				Partition: "0",
 			}
-			watchCh := etcdClient.Watch(ctx, "/topics/foo/0/routes/", clientv3.WithPrefix())
+			watchCh := etcdClient.Watch(ctx, "/t/foo/p/0/rout/", clientv3.WithPrefix())
 			var wg sync.WaitGroup
 			defer wg.Wait()
 			wg.Add(1)
@@ -434,16 +434,16 @@ var _ = Describe("EtcdRegistry", func() {
 				Ω(reg.Register(ctx, w)).Should(Succeed())
 			}()
 			By("adding sessions", func() {
-				_, err := etcdClient.Put(ctx, "/topics/foo/0/sessions/session-0", "")
+				_, err := etcdClient.Put(ctx, "/t/foo/p/0/sess/session-0", "")
 				Ω(err).ShouldNot(HaveOccurred())
 			})
 			Eventually(watchCh).Should(Receive())
 
-			putResp, err := etcdClient.Put(sCtx, "/topics/foo/keys/abc", "1")
+			putResp, err := etcdClient.Put(sCtx, "/t/foo/k/abc", "1")
 			Ω(err).ShouldNot(HaveOccurred())
 			reg.Publish(sCtx, &subscribe.Message{Topic: "foo", Partition: 0, Key: "abc"})
 
-			getResp, err := etcdClient.Get(sCtx, "/topics/foo/keys/abc")
+			getResp, err := etcdClient.Get(sCtx, "/t/foo/k/abc")
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(getResp.Count).Should(BeEquivalentTo(1))
 			Ω(getResp.Kvs[0].ModRevision).ShouldNot(Equal(putResp.Header.Revision))

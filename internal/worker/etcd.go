@@ -62,10 +62,10 @@ func (r *EtcdRegistry) Register(ctx context.Context, worker Worker) error {
 
 	// Get the key value data
 	var (
-		base        = path.Join("/topics", worker.Topic, worker.Partition)
-		hostPath    = path.Join(base, "hosts") + "/"
-		sessionPath = path.Join(base, "sessions") + "/"
-		routePath   = path.Join(base, "routes") + "/"
+		base        = path.Join("/t", worker.Topic, "p", worker.Partition)
+		hostPath    = path.Join(base, "host") + "/"
+		sessionPath = path.Join(base, "sess") + "/"
+		routePath   = path.Join(base, "rout") + "/"
 	)
 
 	hostBytes, err := json.Marshal(worker)
@@ -385,7 +385,7 @@ func (r *EtcdRegistry) Publish(ctx context.Context, message *subscribe.Message) 
 	}
 
 	// Load the key
-	key := path.Join("/topics/", message.Topic, "keys/", message.Key)
+	key := path.Join("/t", message.Topic, "k", message.Key)
 	value := strconv.Itoa(int(message.Partition))
 
 	resp, err := r.kv.Get(ctx, key)

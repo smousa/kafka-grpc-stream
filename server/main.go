@@ -133,10 +133,6 @@ func main() {
 
 	// Set up the publisher
 	broadcast := subscribe.NewBufferedBroadcast(viper.GetInt("server.broadcast.bufferSize"))
-	publisher := subscribe.Publishers{
-		registry,
-		broadcast,
-	}
 
 	// Set up the server
 	s := service.New(broadcast)
@@ -155,7 +151,7 @@ func main() {
 	}()
 
 	// Set up the consumer
-	subscriber := subscribe.NewKafkaSubscriber(kafkaClient, publisher)
+	subscriber := subscribe.NewKafkaSubscriber(kafkaClient, broadcast)
 
 	logger.Info().Msg("Starting consumer")
 
